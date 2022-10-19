@@ -1,0 +1,6 @@
+5.spades:2.hearts:4.diamonds:1.clubs,3.clubs:4.diamonds:9.spades:6.spades,2.hearts,8.hearts:4.spades:2.clubs:9.clubs
+0:0,STACK:0.5:0.2,5.spades:2.hearts:4.diamonds:9.clubs:4.spades:2.hearts
+0:-1,COLUMN:0.05:0.2,5.spades:2.hearts:4.diamonds:9.clubs:4.spades:2.hearts
+0:1,COLUMN:0.05:0.2,5.spades:2.hearts:4.diamonds:9.clubs:4.spades:2.hearts
+-1:0,ROW:0:0.05,5.spades:2.hearts:4.diamonds:9.clubs:4.spades:2.hearts
+1:0,ROW:0:0.05,5.spades:2.hearts:4.diamonds:9.clubs:4.spades:2.hearts
