@@ -43,7 +43,7 @@ public class Card : MonoBehaviour
         c.Rank = rank;
         c.Suit = suit;
         if (0 < rank && rank < 14 && suits.Any(s => s == suit))
-            c.GetComponent<Renderer>().material.mainTexture = BoardManagerController.Instance.cardSprites[rank + 13 * Array.IndexOf(suits, suit)];
+            c.GetComponent<Renderer>().material.mainTexture = BoardManagerController.Instance.cardSprites[rank-1 + 13 * Array.IndexOf(suits, suit)];
         return c;
     }
 

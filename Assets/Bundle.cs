@@ -7,9 +7,9 @@ public class Bundle : MonoBehaviour
 {
     public enum Formation
     {
-        ROW,
-        COLUMN,
-        STACK
+        ROW = 0,
+        COLUMN = 1,
+        STACK = 2
     }
 
     [SerializeField]
@@ -17,6 +17,7 @@ public class Bundle : MonoBehaviour
     public Card[] Cards { get => cards.ToArray(); }
 
     public bool trigger = false;
+    public bool remove_card = false;
 
     /* Test
     public List<string[]> Cards {
@@ -83,6 +84,7 @@ public class Bundle : MonoBehaviour
     }
     #endregion
 
+    #region Display Functions
     public void UpdateCards() {
         Display();
     }
@@ -95,9 +97,8 @@ public class Bundle : MonoBehaviour
 
     public void Display()
     {
-        if (Count < 1 || !displayActive) return;
-        //this.gameObject.transform.localScale = new Vector3(Card.xScale, Card.yScale, Card.zScale);
         for (int i = 0; i < Count; i++) { cards[i].gameObject.SetActive(false); cards[i].transform.position = this.transform.position; }
+        if (Count < 1 || !displayActive) return;
         switch (display)
         {
             case Formation.COLUMN:
@@ -131,6 +132,7 @@ public class Bundle : MonoBehaviour
                 break;
         }
     }
+    #endregion
 
     public static Bundle Create(Formation f, float spaceX, float spaceZ)
     {
@@ -139,6 +141,16 @@ public class Bundle : MonoBehaviour
         b.display = f;
         b.spaceX = spaceX;
         b.spaceZ = spaceZ;
+        return b;
+    }
+
+    public Bundle Enable(float x, float z, Quaternion quat)
+    {
+        Bundle b = Instantiate(this, new Vector3(x, 0.5f, z), quat);
+        b.name = "Bundle";
+        b.enabled = true;
+        b.gameObject.SetActive(true);
+        b.SetDisplay(true);
         return b;
     }
 
@@ -159,9 +171,14 @@ public class Bundle : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (trigger) {
-            this.Remove(1);
+        if (trigger)
+        {
+            this.Display();
             trigger = false;
+        }
+        if (remove_card) {
+            this.Remove(1);
+            remove_card = false;
         }
     }
 }
