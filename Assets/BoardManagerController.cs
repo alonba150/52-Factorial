@@ -41,7 +41,6 @@ public class BoardManagerController : MonoBehaviour
     public bool remove_from_all;
 
     private Socket server;
-    private int times = 0;
 
     private void Awake()
     {
@@ -60,35 +59,35 @@ public class BoardManagerController : MonoBehaviour
         bundles.Add(hand2);
         bundles.Add(hand3);
         bundles.Add(hand4);
-        for (int i = 0; i < hands.Length; i++)
-        {
-            if (i >= 4) break;
-            foreach (string c in hands[i].Split(':'))
-            {
-                string[] options = c.Split('.');
-                _hands[i].Add(Card.Create(int.Parse(options[0]), options[1]));
-            }
-        }
-        for (int i = 1; i < lines.Length; i++)
-        {
-            string[] bundle = lines[i].Split(',');
-            string[] coords = bundle[0].Split(':');
-            string[] bSettings = bundle[1].Split(':');
-            Bundle b = Bundle.Create(Bundle.Formation.Parse<Bundle.Formation>(bSettings[0]), float.Parse(bSettings[1]), float.Parse(bSettings[2]));
-            bundles.Add(b);
-            foreach (string c in bundle[2].Split(':'))
-            {
-                string[] options = c.Split('.');
-                b.Add(Card.Create(int.Parse(options[0]), options[1]));
-            }
-            Debug.Log("INSTANT");
-            b = b.Enable(float.Parse(coords[0]), float.Parse(coords[1]), Quaternion.identity);
-        }
+        //for (int i = 0; i < hands.Length; i++)
+        //{
+        //    if (i >= 4) break;
+        //    foreach (string c in hands[i].Split(':'))
+        //    {
+        //        string[] options = c.Split('.');
+        //        _hands[i].Add(Card.Create(int.Parse(options[0]), options[1]));
+        //    }
+        //}
+        //for (int i = 1; i < lines.Length; i++)
+        //{
+        //    string[] bundle = lines[i].Split(',');
+        //    string[] coords = bundle[0].Split(':');
+        //    string[] bSettings = bundle[1].Split(':');
+        //    Bundle b = Bundle.Create(Bundle.Formation.Parse<Bundle.Formation>(bSettings[0]), float.Parse(bSettings[1]), float.Parse(bSettings[2]));
+        //    bundles.Add(b);
+        //    foreach (string c in bundle[2].Split(':'))
+        //    {
+        //        string[] options = c.Split('.');
+        //        b.Add(Card.Create(int.Parse(options[0]), options[1]));
+        //    }
+        //    Debug.Log("INSTANT");
+        //    b = b.Enable(float.Parse(coords[0]), float.Parse(coords[1]), Quaternion.identity);
+        //}
         //
         // Start Connection with server
         //
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-        IPAddress ipAddress = host.AddressList[4];
+        IPAddress ipAddress = host.AddressList[5];
         foreach (IPAddress ip in host.AddressList)
         {
             Debug.Log(ip);
@@ -167,6 +166,19 @@ public class BoardManagerController : MonoBehaviour
         }
     }
 
+    void OnMouseClick()
+    {
+        RaycastHit raycastHit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out raycastHit, 100f))
+        {
+            if (raycastHit.transform != null)
+            {
+                Debug.Log(raycastHit.transform.gameObject.name);
+            }
+        }
+    }
+
     private void HandleData(string data)
     {
         if (!data.Contains('(') || !data.Contains(')')) return;
@@ -196,14 +208,13 @@ public class BoardManagerController : MonoBehaviour
             case "RemoveBundle":
                 bundleId = int.Parse(args[0]);
                 Bundle b = bundles[bundleId];
-                Destroy(b);
+                Destroy(b.gameObject);
                 bundles.Remove(b);
                 break;
             case "MoveCard":
                 bundleId = int.Parse(args[0]);
                 int otherBundleId = int.Parse(args[1]);
-                cardId = int.Parse(args[1]);
-                int otherCardId = int.Parse(args[1]);
+                cardId = int.Parse(args[2]);
                 bundles[bundleId].MoveCard(cardId, bundles[otherBundleId]);
                 break;
             default:

@@ -1,5 +1,20 @@
 import socket
 
+"""
+
+Dear programmer:
+When I wrote this code, only god and
+I knew how it worked.
+Now, only god knows.
+
+Therefore, if you are trying to optimize
+this and it doesn't work (most likely),
+please increase this counter as a warning
+for the next individual:
+
+total_hours_wasted_here = 0
+
+"""
 
 def server_program():
     host = socket.gethostbyname_ex(socket.gethostname())[-1][-1]

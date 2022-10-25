@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657826, g: 0.49641263, b: 0.57481676, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -154,6 +154,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cards: []
   trigger: 0
+  remove_card: 0
   display: 1
   spaceX: 0.3
   spaceZ: 0.2
@@ -203,6 +204,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cards: []
   trigger: 0
+  remove_card: 0
   display: 1
   spaceX: 0.3
   spaceZ: 0.2
@@ -430,6 +432,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cards: []
   trigger: 0
+  remove_card: 0
   display: 1
   spaceX: 0.3
   spaceZ: 0.2
@@ -479,6 +482,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardPrefab: {fileID: 8457381180462244744, guid: 365cbb2bf122e9a4192864fea8189d6a, type: 3}
   bundlePrefab: {fileID: 5203097613444729636, guid: a2ebd7884e9fb5641a6e0d75ba7931f9, type: 3}
+  bundles: []
   hand1: {fileID: 43659084}
   hand2: {fileID: 1068983988}
   hand3: {fileID: 120375468}
@@ -607,7 +611,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: a690a16da810b2b46aa506886c1653af, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -683,6 +687,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cards: []
   trigger: 0
+  remove_card: 0
   display: 1
   spaceX: 0.3
   spaceZ: 0.2

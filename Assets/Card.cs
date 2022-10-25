@@ -47,9 +47,9 @@ public class Card : MonoBehaviour
         return c;
     }
 
-    private void Awake()
+    void OnMouseDown()
     {
-        Debug.Log(string.Format("Hello, I am a card! ({0} of {1})", ranks[rank-1], suit));
+        Debug.Log($"Clicked! ({ranks[rank - 1]} of {suit})");
     }
 
     // Start is called before the first frame update
