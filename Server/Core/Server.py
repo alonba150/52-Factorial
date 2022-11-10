@@ -4,14 +4,14 @@ Author: Ran Perry
 # region Imports
 import socket
 
-import PROJECT.Utils.socket_message_helper as sm_helper
+import Utils.SocketUtils as sUtils
 
 import os
 import select
 from socket import *
 import datetime
 import ssl
-from PROJECT.Utils.Event import Event
+from Utils.Event import Event
 
 
 # endregion
@@ -49,7 +49,7 @@ class ServerCommand:
         """
         return not self.sub_commands == []
 
-    def __call__(self, command: bytes, *args, **kwargs):
+    def execute_with_hierarchy(self, command: bytes, *args, **kwargs):
         """
         A call to the command object that will pass through all sub commands and check to which the command applies
         it then calls the function of the specific sub command or itself
@@ -59,7 +59,7 @@ class ServerCommand:
         if command[:len(self.command_syntax) + 1] == self.command_syntax + b' ' and self.has_sub_commands():
             command = command[len(self.command_syntax) + 1:]
             for sub_command in self.sub_commands:
-                sub_command(command, *args, **kwargs)
+                sub_command.execute_with_hierarchy(command, *args, **kwargs)
             return
 
         if command[:len(self.command_syntax)] == self.command_syntax:
@@ -72,14 +72,14 @@ class ServerCommand:
 class Server:
 
     def __init__(self, encrypted: bool = True, port_server_addr: tuple = None,
-                 connection_handler=None, name: str = None, default_password: int = 4444,
+                 input_handler=None, name: str = None, default_password: int = 4444,
                  ip: str = gethostbyname_ex(gethostname())[-1][-1], port: int = 54321):
 
         # Save start time
         start_time = datetime.datetime.now()
         self.start_time = start_time - datetime.timedelta(microseconds=start_time.microsecond)
 
-        sm_helper.set_length_buff(8)
+        sUtils.set_length_buff(8)
 
         self.__default_password = default_password
         self.addr = (ip, port)
@@ -104,8 +104,8 @@ class Server:
         self._client_info = {}
         self.__commands = []
 
-        if connection_handler is not None:
-            self.__connection = connection_handler
+        if input_handler is not None:
+            self.__input_handle = input_handler
 
         self.terminate_client_event = Event()
 
@@ -127,7 +127,7 @@ class Server:
 
     def __main(self):
         # Alert server starting process
-        self.__server_msg("Starting Up Server")
+        self.__server_msg(f"Starting Up Server on {self.addr}")
 
         try:
             self.__server.bind(self.addr)
@@ -168,7 +168,7 @@ class Server:
                     self._client_messages[new_client] = []
                 else:
                     # Read what client says
-                    data, succeed = sm_helper.listen_for_socket(read_client)
+                    data, succeed = sUtils.listen_for_socket(read_client)
 
                     # Error occurred
                     if not succeed:
@@ -188,12 +188,12 @@ class Server:
                             self.__server_msg("An unknown error has occurred.")
                             self.terminate_client(read_client, reason="an unknown error has occurred")
                     else:
-                        self.__connection_handler(read_client, data)
+                        self.__input_handler(read_client, data)
 
             # Handle outputs
             for write_client in write:
                 if self._client_messages.get(write_client, None):
-                    sm_helper.send_message(write_client, self._client_messages[write_client].pop(0))
+                    sUtils.send_message(write_client, self._client_messages[write_client].pop(0))
 
             for exception_client in exception:
                 self.terminate_client(exception_client, reason="an unknown error has occurred")
@@ -229,7 +229,7 @@ class Server:
         """
         self.__commands.append(command)
 
-    def add_commands(self, commands: list[ServerCommand]):
+    def add_commands(self, commands: list):
         """
         Adds commands to the server
         :param commands: commands to add
@@ -247,7 +247,7 @@ class Server:
             return True
         return False
 
-    def remove_commands(self, commands: list[ServerCommand]):
+    def remove_commands(self, commands: list):
         """
         Remove commands from the server
         :param commands: commands to remove
@@ -256,15 +256,15 @@ class Server:
 
     # endregion
 
-    def __connection_handler(self, client, data):
+    def __input_handler(self, client, data):
         addr = self._client_info[client]['addr']
         for command in self.__commands:
             try:
-                command(command=data, client=client, addr=addr)
+                command.execute_with_hierarchy(command=data, client=client, addr=addr)
             except Exception as e:
                 self.terminate_client(client, reason=e.__str__())
         try:
-            self.__connection(client, addr, data)
+            self.__input_handle(client, addr, data)
         except Exception as e:
             self.terminate_client(client, reason=e.__str__())
 

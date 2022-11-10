@@ -87,7 +87,7 @@ public class BoardManagerController : MonoBehaviour
         // Start Connection with server
         //
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-        IPAddress ipAddress = host.AddressList[5];
+        IPAddress ipAddress = host.AddressList[4];
         foreach (IPAddress ip in host.AddressList)
         {
             Debug.Log(ip);
@@ -128,7 +128,7 @@ public class BoardManagerController : MonoBehaviour
                 {
                     server.Disconnect(true);
                 }
-                HandleData(data);
+                HandleData(data.Substring(8));
             }
         }
         catch (Exception e)

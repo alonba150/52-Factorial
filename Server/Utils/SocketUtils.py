@@ -5,7 +5,7 @@ Handles all tcp communications between 2 sockets
 import socket
 import ssl
 
-length_buffer = 16
+length_buffer = 8
 
 
 def set_length_buff(buff: int):
