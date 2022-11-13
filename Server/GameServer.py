@@ -1,4 +1,7 @@
 from Core.Server import Server, ServerCommand
+from Game.Game import *
+from Game.Bundle import *
+from Game.Card import *
 
 import threading
 
@@ -9,6 +12,8 @@ class GameServer(Server):
         super().__init__(encrypted=False, input_handler=None, name='Game Server', port=55555)
 
         # Adding all commands
+
+        self.add_command(ServerCommand('connect', self.connect_to_game))
 
         """
         ping_command = ServerCommand('ping', self.ping)
@@ -43,14 +48,17 @@ class GameServer(Server):
         
         """
 
-        # Configuring Events
-
-        ##self.terminate_client_event += lambda client, _, __: self.remove_client(client)
-
         # Setting up variables
 
         t = threading.Thread(target=self.get_input)
         t.start()
+
+        self.game = Game(":(")
+
+        # Configuring Events
+
+        # self.connect_client_event += lambda client: if self.game: self.game.connect(client)
+        self.terminate_client_event += lambda client, *args, **kwargs: self.disconnect_from_game(b"", client)
 
         # Starting self
 
@@ -65,13 +73,12 @@ class GameServer(Server):
         def decorator(func):
             def applicator(self, command: bytes, client, *args, **kwargs):
                 try:
-                    val = func(self, command, client, *args, **kwargs)
-                    if not val:
+                    if not func(self, command, client, *args, **kwargs):
                         self._client_messages[client].append(str(fail_message).encode())
                 except Exception as exe:
                     self._client_messages[client].append(str(fail_message).encode())
                     print(exe)
-                print(fail_message)
+                # print(fail_message)
 
             return applicator
 
@@ -80,6 +87,18 @@ class GameServer(Server):
     def get_input(self):
         while 1:
             self.broadcast(input(" -> ").encode())
+
+    @issue_handle()
+    def connect_to_game(self, arg: bytes, client, *args, **kwargs):
+        if self.game: self.game.connect(client)
+        if self.game.can_start: self.game.start()
+        return True
+
+    @issue_handle()
+    def disconnect_from_game(self, arg: bytes, client, *args, **kwargs):
+        if self.game: self.game.disconnect(client)
+        return True
+
 
 if __name__ == '__main__':
     GameServer()

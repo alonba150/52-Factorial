@@ -107,7 +107,9 @@ class Server:
         if input_handler is not None:
             self.__input_handle = input_handler
 
+        # Events
         self.terminate_client_event = Event()
+        self.connect_client_event = Event()
 
     def start(self):
         """
@@ -166,6 +168,7 @@ class Server:
                     self._client_info[new_client]['name'] = str(new_client_addr)
 
                     self._client_messages[new_client] = []
+                    self.connect_client_event(new_client)
                 else:
                     # Read what client says
                     data, succeed = sUtils.listen_for_socket(read_client)
