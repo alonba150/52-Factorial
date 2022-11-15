@@ -1,11 +1,11 @@
-from Game.Card import *
+from Game.GameObjects.Card import *
 from typing import List
 
 
 class Bundle:
     cards: List[Card] = []
 
-    def __init__(self, cards: List[Card]):
+    def __init__(self, cards: List[Card] = []):
         self.cards = cards
 
     def __getitem__(self, item) -> Card:

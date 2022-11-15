@@ -1,7 +1,5 @@
 from Core.Server import Server, ServerCommand
-from Game.Game import *
-from Game.Bundle import *
-from Game.Card import *
+from Game.GameManager import *
 
 import threading
 
