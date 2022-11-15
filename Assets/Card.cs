@@ -43,13 +43,13 @@ public class Card : MonoBehaviour
         c.Rank = rank;
         c.Suit = suit;
         if (0 < rank && rank < 14 && suits.Any(s => s == suit))
-            c.GetComponent<Renderer>().material.mainTexture = BoardManagerController.Instance.cardSprites[rank + 13 * Array.IndexOf(suits, suit)];
+            c.GetComponent<Renderer>().material.mainTexture = BoardManagerController.Instance.cardSprites[rank-1 + 13 * Array.IndexOf(suits, suit)];
         return c;
     }
 
-    private void Awake()
+    void OnMouseDown()
     {
-        Debug.Log(string.Format("Hello, I am a card! ({0} of {1})", ranks[rank-1], suit));
+        Debug.Log($"Clicked! ({ranks[rank - 1]} of {suit})");
     }
 
     // Start is called before the first frame update
