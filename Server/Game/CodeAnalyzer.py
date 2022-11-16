@@ -8,14 +8,21 @@ class CodeAnalyzer:
 
     def read_code(self, code: str, node_next=(lambda *args, **kwargs: None)):
         if code.isdigit():
-            return [Node(lambda _node_next: _node_next(int(code)), 0, node_next)]
+            return [Node(lambda _node_next, *args, **kwargs: _node_next(int(code)), 0, node_next)]
         cmd_t = code[0]
         cmd_i = code[1] + code[2] + code[3]
         node = Node(*self.__find_dict[cmd_t][int(cmd_i)], node_next)
         cmds = code[5:-1]
         if not cmds:
             return [node]
-        cmds = cmds.split(',')
+        starter_i = 0
+        for index in [i for i, c in enumerate(cmds) if c == ',']:
+            temp = cmds[starter_i: index]
+            if temp.count('(') == temp.count(')'):
+                starter_i = index
+                cmds = cmds[0: index] + '%' + cmds[index+1:]
+        cmds = cmds.split('%')
+        print(cmds)
         results = []
         for sub_cmd in cmds:
             if res := self.read_code(sub_cmd, node): results.extend(res)
@@ -23,9 +30,12 @@ class CodeAnalyzer:
 
     def analyze_code(self, code: str):
         activate = Event()
+        i = 0
         for node in self.read_code(code):
-            print(node)
-            activate += node
+            if i >= 0:
+                print(node)
+                activate += node
+            i += 1
         return activate
 
     def __initialize_commands(self):
@@ -68,12 +78,33 @@ class Node:
         self.cmd = cmd
         self.arg_l = arg_l
         self.args = []
+        self.repeatables = []
         self.node_next = node_next
 
-    def __call__(self, *args, index=0):
-        if len(args) == self.arg_l:
-            self.cmd(*args, self.node_next)
+    def __call__(self, *args, static=True):
+        #print(self)
+        if not static:
+            self.repeatables.append(args[0])
+            if 1 + len(self.args) == self.arg_l:
+                for arg in self.repeatables:
+                    self.cmd(*([arg] + self.args), self.node_next, static=static)
+                    self.repeatables.remove(arg)
+        elif len(args) == self.arg_l:
+            self.cmd(*args, self.node_next, static=static)
         elif len(args) == 1:
-            self.args.insert(args[0], index)
+            self.args.append(args[0])
             if len(self.args) == self.arg_l:
-                self.cmd(*self.args, self.node_next)
+                self.cmd(self.args[1], self.args[0], self.node_next, static=static)
+            elif 1 + len(self.args) == self.arg_l:
+                for arg in self.repeatables:
+                    self.cmd(*([arg] + self.args), self.node_next, static=static)
+
+    def __repr__(self):
+        return \
+            f"""Node:
+    {self.cmd =}
+    {self.arg_l =}
+    {self.args =}
+    {self.repeatables =}
+"""
+

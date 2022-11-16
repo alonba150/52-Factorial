@@ -21,13 +21,13 @@ class Game:
         #                Bundle([Card(3, 4), Card(0, 7), Card(2, 5), Card(3, 3)]),
         #                Bundle([])]
 
-        self.bundles = [Bundle(), Bundle(), Bundle(), Bundle()]
+        self.bundles = [Bundle(cards=[]), Bundle(cards=[]), Bundle(cards=[]), Bundle(cards=[])]
 
         self.__analyzer = CodeAnalyzer(self)
         self.start = self.__analyzer.analyze_code(code)
         self.start()
         print(self.players)
-        print(self.bundles)
+        print(*self.bundles, sep='\n')
 
     def connect(self, sock: socket):
         if sock in self.players:
@@ -47,64 +47,66 @@ class Game:
 
     # region A Commands
 
-    def get_players_command(self, next_command):
+    def get_players_command(self, next_command, static=True):
         print("A0")
         next_command(self.players)
 
-    def get_bundles_command(self, next_command):
+    def get_bundles_command(self, next_command, static=True):
         print("A1")
         next_command(self.bundles)
 
     # endregion
 
     # region B Commands
-    def get_bundle_by_player_command(self, player, next_command):
-        print("B0")
-        next_command(self.bundles[self.players.index(player)])
-
-    @staticmethod
-    def count_command(lst: list, next_command):
-        print("B1")
-        next_command(len(lst))
-
-    @staticmethod
-    def number_command(num: str, next_command):
-        print("B2")
-        next_command(int(num))
-
-    @staticmethod
-    def add_command(n1: int, n2: int, next_command):
-        print("B3")
-        next_command(n1 + n2)
-
-    @staticmethod
-    def subtract_command(n1: int, n2: int, next_command):
+    def get_bundle_by_player_command(self, player, next_command, static=True):
         print("B4")
-        next_command(n1 - n2)
+        next_command(self.bundles[self.players.index(player)], static=static)
 
     @staticmethod
-    def multiply_command(n1: int, n2: int, next_command):
+    def count_command(lst: list, next_command, static=True):
         print("B5")
-        next_command(n1 * n2)
+        next_command(len(lst), static=static)
 
     @staticmethod
-    def divide_command(n1: int, n2: int, next_command):
+    def number_command(num: str, next_command, static=True):
         print("B6")
-        next_command(n1 // n2)
+        next_command(int(num), static=static)
+
+    @staticmethod
+    def add_command(n1: int, n2: int, next_command, static=True):
+        print("B0")
+        next_command(n1 + n2, static=static)
+
+    @staticmethod
+    def subtract_command(n1: int, n2: int, next_command, static=True):
+        print("B1")
+        next_command(n1 - n2, static=static)
+
+    @staticmethod
+    def multiply_command(n1: int, n2: int, next_command, static=True):
+        print("B2")
+        next_command(n1 * n2, static=static)
+
+    @staticmethod
+    def divide_command(n1: int, n2: int, next_command, static=True):
+        print("B3")
+        next_command(n2 // n1, static=static)
 
     # endregion
 
     # region C Commands
     @staticmethod
-    def foreach_command(lst: list, next_command):
-        print("C1")
-        for item in lst: next_command(item)
+    def foreach_command(lst: list, next_command, static=None):
+        print("C0")
+        for item in lst: next_command(item, static=False)
 
     @staticmethod
-    def give_cards_command(b: Bundle, count: int, next_command):
-        print("C2")
+    def give_cards_command(b: Bundle, count: int, next_command, static=True):
+        print("C1")
+        print(f"{b=}")
+        print(f"{count=}")
         for _ in range(count): b.append(Card(random.randint(0, 3), random.randint(0, 12)))
-        next_command()
+        next_command(static=static)
 
     # endregion
 
@@ -116,4 +118,4 @@ class Game:
 
 
 if __name__ == '__main__':
-    g = Game("C001(B004(C000(A000)),B003(B006(52),B005(A000)))")
+    g = Game("C001(B004(C000(A000)),B003(52,B005(A000)))")

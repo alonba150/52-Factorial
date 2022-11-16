@@ -29,3 +29,6 @@ class Bundle:
     def move(self, other, index=0):
         other + self.pop(index)
 
+    def __repr__(self):
+        return f"Bundle {len(self.cards)}: {self.cards}"
+
