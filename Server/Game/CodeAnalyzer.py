@@ -9,9 +9,10 @@ class CodeAnalyzer:
         self.__initialize_commands()
 
     def analyze_code(self, code: str):
+        if not code: return lambda: None
         if not Node.initialize_nodes(list(map(lambda c: c.split(': '), code.split('///'))), self.__find_dict):
             print('BAD')
-            return
+            return lambda: None
         for node in Node.nodes.values():
             print(node)
 
@@ -72,15 +73,16 @@ class Node:
         """
         Node.func_dict = func_dict
         nodes = []
-        for node_data in nodes_data: nodes.append(Node(node_data[0]))
+        for node_data in nodes_data:
+            if not type(node_data) is list or not len(node_data) == 2: return False
+            nodes.append(Node(node_data[0]))
         if not all(nodes[node_i].set_attr(nodes_data[node_i][1]) for node_i in range(len(nodes))):
             print("Bad Attr")
             return False
         if not all(node.initialize_connections() for node in nodes):
             print('Bad Conn')
             return False
-        l = list(Node.nodes.values())
-        for node in l: node.static
+        for node in list(Node.nodes.values()): node.static
         return True
 
     def __init__(self, node_id):

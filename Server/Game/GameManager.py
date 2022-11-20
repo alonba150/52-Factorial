@@ -6,22 +6,20 @@ import random
 
 
 class Game:
-    players: List[socket] = [1, 2, 3, 4]
-    player_turn: socket = None
-    player_count: int = 0
-    can_start: bool = False
 
-    bundles: List[Bundle] = []
+    def __init__(self, code: str, players=[1, 2, 3, 4], player_count=4):
+        self.players: List[socket] = players
+        self.player_count: int = player_count
+        self.can_start: bool = False
+        self.bundles: List[Bundle] = []
 
-    def __init__(self, code: str):
-        self.player_count = 4
         # self.bundles = [Bundle([Card(1, 0), Card(2, 2), Card(3, 9), Card(0, 12)]),
         #                Bundle([Card(0, 2), Card(3, 9), Card(1, 1), Card(2, 0)]),
         #                Bundle([Card(2, 7), Card(1, 0), Card(0, 12), Card(1, 10)]),
         #                Bundle([Card(3, 4), Card(0, 7), Card(2, 5), Card(3, 3)]),
         #                Bundle([])]
 
-        self.bundles = [Bundle(cards=[]), Bundle(cards=[]), Bundle(cards=[]), Bundle(cards=[])]
+        self.bundles = [Bundle(cards=[]) for _ in self.players]
 
         self.__analyzer = CodeAnalyzer(self)
         self.start = self.__analyzer.analyze_code(code)
