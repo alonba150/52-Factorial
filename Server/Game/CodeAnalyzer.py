@@ -9,20 +9,43 @@ class CodeAnalyzer:
         self.__initialize_commands()
 
     def analyze_code(self, code: str):
+        self.nodes = {}
+        self.starter_nodes = []
+
         if not code: return lambda: None
-        if not Node.initialize_nodes(list(map(lambda c: c.split(': '), code.split('///'))), self.__find_dict):
+        if not self.__initialize_nodes(list(map(lambda c: c.split(': '), code.split('///'))), self.__find_dict):
             print('BAD')
             return lambda: None
-        for node in Node.nodes.values():
+        for node in self.nodes.values():
             print(node)
 
         event = Event()
-        for node in Node.starter_nodes:
+        for node in self.starter_nodes:
             event += node
 
-        event += Node.nodes['1']
+        event += self.nodes['1']
 
         return event
+
+    def __initialize_nodes(self, nodes_data: List[str], func_dict: dict) -> bool:
+        """
+        Manages all the nodes accordingly to create a functioning web of them
+        :param nodes_data: string list containing id and data for each node
+        :param func_dict: a dict containing all the command functions
+        """
+        self.func_dict = func_dict
+        nodes = []
+        for node_data in nodes_data:
+            if not type(node_data) is list or not len(node_data) == 2: return False
+            nodes.append(Node(node_data[0], self))
+        if not all(nodes[node_i].set_attr(nodes_data[node_i][1]) for node_i in range(len(nodes))):
+            print("Bad Attr")
+            return False
+        if not all(node.initialize_connections() for node in nodes):
+            print('Bad Conn')
+            return False
+        for node in list(self.nodes.values()): node.static
+        return True
 
     def __initialize_commands(self):
         # region THE BIG SWITCH CASE
@@ -60,35 +83,12 @@ class CodeAnalyzer:
 
 
 class Node:
-    nodes = {}
-    starter_nodes = []
-    func_dict = {}
 
-    @staticmethod
-    def initialize_nodes(nodes_data: List[str], func_dict: dict) -> bool:
-        """
-        Manages all the nodes accordingly to create a functioning web of them
-        :param nodes_data: string list containing id and data for each node
-        :param func_dict: a dict containing all the command functions
-        """
-        Node.func_dict = func_dict
-        nodes = []
-        for node_data in nodes_data:
-            if not type(node_data) is list or not len(node_data) == 2: return False
-            nodes.append(Node(node_data[0]))
-        if not all(nodes[node_i].set_attr(nodes_data[node_i][1]) for node_i in range(len(nodes))):
-            print("Bad Attr")
-            return False
-        if not all(node.initialize_connections() for node in nodes):
-            print('Bad Conn')
-            return False
-        for node in list(Node.nodes.values()): node.static
-        return True
-
-    def __init__(self, node_id):
+    def __init__(self, node_id, game):
         self.__id = node_id
+        self.__game = game
         # Adds self to the dict of nodes by ids
-        Node.nodes[self.id] = self
+        game.nodes[self.id] = self
 
         self.__func = None
         self.__inputs = []
@@ -133,8 +133,9 @@ class Node:
             # Reads data from string with some string manipulation
             func_code, inputs, outputs, triggers = data[1:-1].split('*')  # Removing brackets [] and splitting
             self.__type = func_code[0]  # Setting the type (FE: 'A' or 'C')
-            if self.__type == 'A': Node.starter_nodes.append(self)
-            self.__func = Node.func_dict[func_code[0]][int(func_code[1:4])]  # Get function from string code (FE: A000)
+            if self.__type == 'A': self.__game.starter_nodes.append(self)
+            # Get function from string code (FE: A000)
+            self.__func = self.__game.func_dict[func_code[0]][int(func_code[1:4])]
             if func_code[0:4] == "C000": self.__repeatable = True
             if inputs:  # Parse inputs -> List[List[(node_ID, node_output_slot_index)]]
                 self.__inputs = list(map(
@@ -143,14 +144,17 @@ class Node:
                     )),
                     inputs[1:-1].split('//')
                 ))
-            if outputs:  # Parse outputs List[List[node_ID]]
+            if outputs:  # Parse outputs List[Dict<node_ID, List[]>]
                 self.__outputs = list(map(
                     lambda output_nodes: {output_node: [] for output_node in output_nodes[1:-1].split('/')},
                     outputs[1:-1].split('//')
                 ))
 
-            if triggers:  # Parse triggers List[node_ID]
-                self.__triggers = triggers[1:-1].split('//')
+            if triggers:  # Parse triggers List[List[node_ID]]
+                self.__triggers = list(map(
+                    lambda trigger_slot: trigger_slot[1:-1].split('/'),
+                    triggers[1:-1].split('//')
+                ))
 
             return True  # Function Succeeded
 
@@ -164,22 +168,23 @@ class Node:
         """
         for slot_index in range(len(self.__inputs)):
             for input_node_index in range(len(self.__inputs[slot_index])):
-                if not (node := Node.nodes.get(self.__inputs[slot_index][input_node_index][0], False)):
+                if not (node := self.__game.nodes.get(self.__inputs[slot_index][input_node_index][0], False)):
                     return False
                 self.__inputs[slot_index][input_node_index] = node, self.__inputs[slot_index][input_node_index][1]
         for slot_index in range(len(self.__outputs)):
             keys = list(self.__outputs[slot_index].keys())
             for output_node_id in keys:
-                if not (node := Node.nodes.get(output_node_id, False)):
+                if not (node := self.__game.nodes.get(output_node_id, False)):
                     return False
                 self.__outputs[slot_index][node] = []
             for output_node_id in keys:
                 self.__outputs[slot_index].pop(output_node_id, None)
-        for node_index in range(len(self.__triggers)):
-            if not (node := Node.nodes.get(self.__triggers[node_index], False)):
-                # print(self)
-                return False
-            self.__triggers[node_index] = node
+        for trigger_slot_index in range(len(self.__triggers)):
+            for node_index in range(len(self.__triggers[trigger_slot_index])):
+                if not (node := self.__game.nodes.get(self.__triggers[trigger_slot_index][node_index], False)):
+                    # print(self)
+                    return False
+                self.__triggers[trigger_slot_index][node_index] = node
         return True
 
     def has_value(self, node_sender, output_index):
@@ -213,14 +218,22 @@ class Node:
         ):
             return
         if results := self.func[0](*self.__get_values()):
-            if type(results) is dict:
+            if type(results) is tuple and len(results) == 2 and type(results[0]) is dict:
                 for i in range(len(self.__outputs)):
-                    if res := results.get(i, False):
+                    if res := results[0].get(i, False):
                         for output in self.__outputs[i].keys():
                             if type(res) is list:
                                 self.__outputs[i][output].extend(res)
-                            else: self.__outputs[i][output].append(res)
-        for trigger in self.__triggers: trigger()
+                            else:
+                                self.__outputs[i][output].append(res)
+                if results[1] and type(results[1]) is tuple:
+                    for res in results[1]:
+                        if type(res) is int and res < len(self.__triggers):
+                            for trigger in self.__triggers[res]:
+                                trigger()
+        if len(self.__triggers) > 0:
+            for trigger in self.__triggers[0]:
+                trigger()
         if self.__type:
             for output_slot in self.__outputs:
                 for output in output_slot.keys():
@@ -229,7 +242,6 @@ class Node:
         if not self.static: self()  # Check again if it can activate
 
     def __str__(self):
-        print(self.__id, self.__outputs)
         return f"\rNode ({self.__id}):\n\r\t{self.func=}\n\r\tinput={self.__inputs[0][0][0].id if self.__inputs else ''}" \
                f"\n\r\toutput={list(self.__outputs[0].keys())[0].id if self.__outputs else ''}\n\r\t{self.static=}" \
                f"\n\r\tself.__triggers=" \

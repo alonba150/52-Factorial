@@ -1,5 +1,6 @@
 from Core.Server import Server, ServerCommand
 from Game.GameManager import *
+from Storage.database import *
 
 import threading
 
@@ -8,6 +9,14 @@ class GameServer(Server):
 
     def __init__(self):
         super().__init__(encrypted=False, input_handler=None, name='Game Server', port=55555)
+
+        # Setting up variables
+
+        t = threading.Thread(target=self.get_input)
+        t.start()
+
+        self.__games: List[Game] = []
+        self.__client_users = {}
 
         # Adding all commands
 
@@ -46,17 +55,11 @@ class GameServer(Server):
         
         """
 
-        # Setting up variables
-
-        t = threading.Thread(target=self.get_input)
-        t.start()
-
-        self.game = Game(":(")
-
         # Configuring Events
 
         # self.connect_client_event += lambda client: if self.game: self.game.connect(client)
         self.terminate_client_event += lambda client, *args, **kwargs: self.disconnect_from_game(b"", client)
+        self.terminate_client_event += lambda client, *args, **kwargs: self.log_out(b"", client, kicked=True)
 
         # Starting self
 
@@ -87,6 +90,31 @@ class GameServer(Server):
             self.broadcast(input(" -> ").encode())
 
     @issue_handle()
+    def log_in(self, arg: bytes, client, *args, **kwargs):
+        if user_id := UserDB.get_id(email=arg[0], password=arg[1]):
+            self.__client_users[client] = user_id
+            self._client_messages[client].append(str(user_id).encode())
+        else:
+            self._client_messages[client].append("False".encode())
+        return True
+
+    @issue_handle()
+    def log_out(self, arg: bytes, client, kicked=False, *args, **kwargs):
+        v = self.__client_users.pop(client, False)
+        if not kicked:
+            if v:
+                self._client_messages[client].append("True".encode())
+            else:
+                self._client_messages[client].append("False".encode())
+        return True
+
+    @issue_handle(fail_message="Bad Arguments")
+    def sign_in(self, arg: bytes, client, *args, **kwargs):
+        self.__client_users[client] = user_id = UserDB.create(username=arg[0], email=arg[1], password=arg[2])
+        self._client_messages[client].append(str(user_id).encode())
+        return True
+
+    @issue_handle()
     def connect_to_game(self, arg: bytes, client, *args, **kwargs):
         if self.game: self.game.connect(client)
         if self.game.can_start: self.game.start()
@@ -95,6 +123,14 @@ class GameServer(Server):
     @issue_handle()
     def disconnect_from_game(self, arg: bytes, client, *args, **kwargs):
         if self.game: self.game.disconnect(client)
+        return True
+
+    @issue_handle(fail_message="Bad Arguments")
+    def add_game(self, arg: bytes, client, *args, **kwargs):
+        if user_id := self.__client_users.get(client, None):
+            game_id = GameDB.create(user_id=user_id, code=arg)
+            self._client_messages[client].append(str(game_id).encode())
+        else: self._client_messages[client].append("Not Logged In".encode())
         return True
 
 

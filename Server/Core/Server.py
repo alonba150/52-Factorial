@@ -294,7 +294,7 @@ class Server:
 
         self.__server_msg(f'Shutting Down Server{f" Because of a {reason}" if reason else ""}')
 
-        with open(os.path.join("Logs", f'{str(self.start_time).replace(" ", "-").replace(":", "-")}.txt'),
+        with open(os.path.join("../Logs", f'{str(self.start_time).replace(" ", "-").replace(":", "-")}.txt'),
                   'w') as file:
             file.write(self.__server_message_history)
             file.close()
