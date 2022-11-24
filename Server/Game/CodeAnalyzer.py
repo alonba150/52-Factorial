@@ -22,8 +22,12 @@ class CodeAnalyzer:
         event = Event()
         for node in self.starter_nodes:
             event += node
+        for node in self.nodes.values():
+            if node.type == "E":
+                event += node
+                print('SUCCESS')
 
-        event += self.nodes['1']
+        print(event)
 
         return event
 
@@ -122,6 +126,10 @@ class Node:
     def repeatable(self):
         return self.__repeatable
 
+    @property
+    def type(self):
+        return self.__type
+
     def set_attr(self, data) -> bool:
         """
         Changes this node's data from a string containing both it's id
@@ -135,7 +143,9 @@ class Node:
             self.__type = func_code[0]  # Setting the type (FE: 'A' or 'C')
             if self.__type == 'A': self.__game.starter_nodes.append(self)
             # Get function from string code (FE: A000)
-            self.__func = self.__game.func_dict[func_code[0]][int(func_code[1:4])]
+            if self.__type != 'E':
+                self.__func = self.__game.func_dict[func_code[0]][int(func_code[1:4])]
+            else: self.__func = (lambda: None, 0)
             if func_code[0:4] == "C000": self.__repeatable = True
             if inputs:  # Parse inputs -> List[List[(node_ID, node_output_slot_index)]]
                 self.__inputs = list(map(
@@ -211,6 +221,7 @@ class Node:
         return ret
 
     def __call__(self, *args, **kwargs):
+        print(self.__type, self.__func)
         if not all(
                 any(
                     input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot
