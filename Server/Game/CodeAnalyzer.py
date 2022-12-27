@@ -19,17 +19,15 @@ class CodeAnalyzer:
         for node in self.nodes.values():
             print(node)
 
-        event = Event()
+        events = [Event(), Event(), Event()]
         for node in self.starter_nodes:
-            event += node
+            for event in events: event += node
         for node in self.nodes.values():
             if node.type == "E":
-                event += node
+                events[node.type_index] += node
                 print('SUCCESS')
 
-        print(event)
-
-        return event
+        return events
 
     def __initialize_nodes(self, nodes_data: List[str], func_dict: dict) -> bool:
         """
@@ -100,6 +98,7 @@ class Node:
         self.__triggers = []
         self.__static = None
         self.__type = None
+        self.__type_index = None
         self.__repeatable = False
 
     @property
@@ -130,6 +129,10 @@ class Node:
     def type(self):
         return self.__type
 
+    @property
+    def type_index(self):
+        return self.__type_index
+
     def set_attr(self, data) -> bool:
         """
         Changes this node's data from a string containing both it's id
@@ -142,9 +145,10 @@ class Node:
             func_code, inputs, outputs, triggers = data[1:-1].split('*')  # Removing brackets [] and splitting
             self.__type = func_code[0]  # Setting the type (FE: 'A' or 'C')
             if self.__type == 'A': self.__game.starter_nodes.append(self)
+            self.__type_index = int(func_code[1:4])
             # Get function from string code (FE: A000)
             if self.__type != 'E':
-                self.__func = self.__game.func_dict[func_code[0]][int(func_code[1:4])]
+                self.__func = self.__game.func_dict[self.__type][self.__type_index]
             else: self.__func = (lambda: None, 0)
             if func_code[0:4] == "C000": self.__repeatable = True
             if inputs:  # Parse inputs -> List[List[(node_ID, node_output_slot_index)]]
@@ -229,7 +233,8 @@ class Node:
         ):
             return
         if results := self.func[0](*self.__get_values()):
-            if type(results) is tuple and len(results) == 2 and type(results[0]) is dict:
+            if type(results) is not tuple: results = results, []
+            if len(results) == 2 and type(results[0]) is dict:
                 for i in range(len(self.__outputs)):
                     if res := results[0].get(i, False):
                         for output in self.__outputs[i].keys():

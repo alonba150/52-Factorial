@@ -13,6 +13,9 @@ class Game:
         self.can_start: bool = False
         self.bundles: List[Bundle] = []
 
+        self.current_player = None
+        self.current_selected_cards = None
+
         # self.bundles = [Bundle([Card(1, 0), Card(2, 2), Card(3, 9), Card(0, 12)]),
         #                Bundle([Card(0, 2), Card(3, 9), Card(1, 1), Card(2, 0)]),
         #                Bundle([Card(2, 7), Card(1, 0), Card(0, 12), Card(1, 10)]),
@@ -22,8 +25,13 @@ class Game:
         self.bundles = [Bundle(cards=[]) for _ in self.players]
 
         self.__analyzer = CodeAnalyzer(self)
-        self.start = self.__analyzer.analyze_code(code)
+        self.start, self.activate, self.end = self.__analyzer.analyze_code(code)
         self.start()
+
+        self.player_turn = players[0]
+        self.index_turn = 0
+        self.current_player = None
+        self.current_selected_cards = None
         print(self.players)
         print(*self.bundles, sep='\n')
 
@@ -58,7 +66,7 @@ class Game:
     # region B Commands
     def get_bundle_by_player_command(self, player):
         print("B4")
-        return {0: [self.bundles[self.players.index(player)]]}
+        return {0: [self.bundles[self.players.index_turn(player)]]}
 
     @staticmethod
     def count_command(lst: list):
@@ -107,11 +115,18 @@ class Game:
 
     # endregion
 
-    def start(self):
-        pass
+    # region D Commands
 
-    def next(self, move):
-        pass
+    def finish_turn(self):
+        self.index_turn = (self.index_turn + 1) % self.player_count
+        self.player_turn = self.players[self.index_turn]
+
+    # endregion
+
+    def activate(self, player, selected_cards=[]):
+        self.current_player = player
+        self.current_selected_cards = selected_cards
+        self.activate()
 
 
 if __name__ == '__main__':
