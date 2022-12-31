@@ -1,5 +1,6 @@
 from Game.GameObjects.Card import *
 from typing import List
+import random
 
 
 class Bundle:
@@ -21,13 +22,27 @@ class Bundle:
         return self.cards.pop(index)
 
     def append(self, card: Card):
-        return self.cards.append(card)
+        self.cards.append(card)
+        return self
 
     def insert(self, index, card: Card):
-        return self.cards.insert(index, card)
+        self.cards.insert(index, card)
+        return self
 
     def move(self, other, index=0):
-        other + self.pop(index)
+        return other.append(self.pop(index))
+
+    @staticmethod
+    def create_deck():
+        b = Bundle()
+        for i in card_types:
+            for j in card_values:
+                b.append(Card(i, j))
+        return b
+
+    def shuffle(self):
+        random.shuffle(self.cards)
+        return self
 
     def __repr__(self):
         return f"Bundle {len(self.cards)}: {self.cards}"

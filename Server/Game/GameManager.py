@@ -3,37 +3,38 @@ from Game.GameObjects.Bundle import *
 from Game.GameObjects.Card import *
 from Game.CodeAnalyzer import CodeAnalyzer
 import random
+from Utils.Event import Event
 
 
 class Game:
 
-    def __init__(self, code: str, players=[1, 2, 3, 4], player_count=4):
+    def __init__(self, code: str, code_turn: str, players=[0, 1, 2, 3], player_count=4):
         self.players: List[socket] = players
         self.player_count: int = player_count
         self.can_start: bool = False
         self.bundles: List[Bundle] = []
 
-        self.current_player = None
-        self.current_selected_cards = None
-
-        # self.bundles = [Bundle([Card(1, 0), Card(2, 2), Card(3, 9), Card(0, 12)]),
-        #                Bundle([Card(0, 2), Card(3, 9), Card(1, 1), Card(2, 0)]),
-        #                Bundle([Card(2, 7), Card(1, 0), Card(0, 12), Card(1, 10)]),
+        # self.bundles = [Bundle([Card(1, 0), Card(2, 2), Card(3, , 1), Card(2, 0)]),
+        #         #                Bundle([Card(2, 7), Card(1, 0), Card(9), Card(0, 12)]),
+        #                Bundle([Card(0, 2), Card(3, 9), Card(10, 12), Card(1, 10)]),
         #                Bundle([Card(3, 4), Card(0, 7), Card(2, 5), Card(3, 3)]),
         #                Bundle([])]
 
-        self.bundles = [Bundle(cards=[]) for _ in self.players]
+        self.bundles = [Bundle(cards=[]) for _ in range(len(self.players) * 3)]
+
+        self.send_update = Event()
 
         self.__analyzer = CodeAnalyzer(self)
-        self.start, self.activate, self.end = self.__analyzer.analyze_code(code)
+        self.start, self.do_turn, self.end = self.__analyzer.analyze_code(code)
+        print(self.__analyzer.nodes['6'].repeatable)
+        _, self.do_turn, _ = CodeAnalyzer(self).analyze_code(code_turn)
         self.start()
 
         self.player_turn = players[0]
         self.index_turn = 0
         self.current_player = None
         self.current_selected_cards = None
-        print(self.players)
-        print(*self.bundles, sep='\n')
+        self.display()
 
     def connect(self, sock: socket):
         if sock in self.players:
@@ -61,12 +62,20 @@ class Game:
         print("A1")
         return {0: [self.bundles]}
 
+    def get_active_player(self):
+        print("A2")
+        return {0: [self.players.index(self.current_player)]}
+
+    def get_player_turn(self):
+        print("A3")
+        return {0: [self.player_turn]}
+
     # endregion
 
     # region B Commands
     def get_bundle_by_player_command(self, player):
         print("B4")
-        return {0: [self.bundles[self.players.index_turn(player)]]}
+        return {0: [self.bundles[self.players.index(player)]]}
 
     @staticmethod
     def count_command(lst: list):
@@ -98,6 +107,18 @@ class Game:
         print("B3")
         return {0: [52 // n2]}
 
+    @staticmethod
+    def equals_command(t1, t2):
+        print('EQUALS', t1, t2)
+        return {0: [t1 == t2]}
+
+    def get_bundle_command(self, index):
+        return {0: [self.bundles[index]]}
+
+    @staticmethod
+    def range_command(start, end):
+        return {0: [[*range(start, end)]]}
+
     # endregion
 
     # region C Commands
@@ -108,10 +129,27 @@ class Game:
 
     @staticmethod
     def give_cards_command(b: Bundle, count: int):
-        print("C1")
-        print(f"{b=}")
-        print(f"{count=}")
         for _ in range(count): b.append(Card(random.randint(0, 3), random.randint(0, 12)))
+
+    def split_stack_between_players(self, each_player_card_count: int):
+        if each_player_card_count * self.player_count > 52: return
+        deck = Bundle.create_deck().shuffle()
+        for b in self.bundles[:self.player_count]:
+            for _ in range(each_player_card_count): deck.move(b, 0)
+
+    def move(self, b, other, index: int):
+        b.move(other, index)
+
+    def practice_war(self, r):
+        print("WAR")
+        _max = -1
+        index = -1
+        for i in r:
+            if self.bundles[i + 4].cards[0].value > _max:
+                _max = self.bundles[i + 4].cards[0].value
+                index = i
+        for i in r:
+            self.bundles[i + 4].move(self.bundles[index + 8], 0)
 
     # endregion
 
@@ -120,17 +158,68 @@ class Game:
     def finish_turn(self):
         self.index_turn = (self.index_turn + 1) % self.player_count
         self.player_turn = self.players[self.index_turn]
+        self.send_update()
+        print('\n\nTURN OVER\n\n')
+
+    def branch(self, bool):
+        print('BRANCH ' + ('true' if bool else 'false'))
+        if bool: return {}, (0,)
+        return {}, (1,)
 
     # endregion
 
     def activate(self, player, selected_cards=[]):
         self.current_player = player
         self.current_selected_cards = selected_cards
-        self.activate()
+        self.do_turn()
+
+    def get_game_str(self):
+        return self.bundles
+
+    def display(self):
+        print(self.players)
+        print(*self.bundles, sep='\n')
 
 
 if __name__ == '__main__':
     # g = Game("C001(B004(C000(A000)),B003(52,B005(A000)))")
+    # Iteration 1
+    # g = Game("0: [A000**{(1/2)}*]///1: [C000*{(0.0)}*{(5)}*{(5)}]///2: [B005*{(0.0)}*{(4)}*]///3: [A000**{(4)}*]///"
+    #          "4: [B003*{(3.0)//(2.0)}*{(6)}*]///5: [B004*{(1.0)}*{(6)}*{(6)}]///6: [C001*{(5.0)//(4.0)}**]///"
+    #          "7: [E000***{(1)}]")
+    # Iteration 2
     g = Game("0: [A000**{(1/2)}*]///1: [C000*{(0.0)}*{(5)}*{(5)}]///2: [B005*{(0.0)}*{(4)}*]///3: [A000**{(4)}*]///"
              "4: [B003*{(3.0)//(2.0)}*{(6)}*]///5: [B004*{(1.0)}*{(6)}*{(6)}]///6: [C001*{(5.0)//(4.0)}**]///"
-             "7: [E000***{(1)}]")
+             "7: [E000***{(1)}]",
+             "0: [E001***{(1)}]///"
+             "1: [D001*{(5.0)}**{(2)//(129)}]///"
+             "2: [C003*{(7.0)//(9.0)//(15.0)}**{(11)}]///"
+             "3: [A002**{(5)}*]///"
+             "4: [A003**{(5)}*]///"
+             "5: [B007*{(3.0)//(4.0)}*{(1)}*]///"
+             "6: [A003**{(7/8)}*]///"
+             "7: [B008*{(6.0)}*{(2)}*]///"
+             "8: [B000*{(6.0)//(17.0)}*{(9)}*]///"
+             "9: [B008*{(8.0)}*{(2)}*]///"
+             "10: [B009*{(18.0)//(19.0)}*{(14)}*]///"
+             "11: [D001*{(12.0)}**{(14)//(16)}]///"
+             "12: [B007*{(13.0)//(20.0)}*{(11)}*]///"
+             "13: [A003**{(12)}*]///"
+             "14: [C004*{(10.0)}**{(16)}]///"
+             "15: [N000**{(2)}*]///"
+             "16: [D000***]///"
+             "17: [N004**{(8)}*]///"
+             "18: [N000**{(10)}*]///"
+             "19: [N004**{(10)}*]///"
+             "20: [N003**{(12)}*]///"
+             "129: [A000***]"
+             )
+    g.activate(0, [])
+    print(g.player_turn,g.current_player,'\n\n')
+    g.activate(1, [])
+    print(g.player_turn, g.current_player, '\n\n')
+    g.activate(2, [])
+    print(g.player_turn, g.current_player, '\n\n')
+    g.activate(3, [])
+    print(g.player_turn, g.current_player, '\n\n')
+    g.display()

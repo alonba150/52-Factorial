@@ -27,7 +27,12 @@ class CodeAnalyzer:
                 events[node.type_index] += node
                 print('SUCCESS')
 
+        events[1] += self.__clear_all_nodes
+
         return events
+
+    def __clear_all_nodes(self):
+        for node in self.nodes.values(): node.clear()
 
     def __initialize_nodes(self, nodes_data: List[str], func_dict: dict) -> bool:
         """
@@ -46,7 +51,9 @@ class CodeAnalyzer:
         if not all(node.initialize_connections() for node in nodes):
             print('Bad Conn')
             return False
-        for node in list(self.nodes.values()): node.static
+        for node in list(self.nodes.values()):
+            node.static
+            node.repeatable
         return True
 
     def __initialize_commands(self):
@@ -56,6 +63,8 @@ class CodeAnalyzer:
         self.__info_nodes = {
             0: (self.game.get_players_command, 0),
             1: (self.game.get_bundles_command, 0),
+            2: (self.game.get_player_turn, 0),
+            3: (self.game.get_active_player, 0),
         }
 
         # B type
@@ -67,18 +76,47 @@ class CodeAnalyzer:
             4: (self.game.get_bundle_by_player_command, 1),
             5: (self.game.count_command, 1),
             6: (self.game.number_command, 1),
+            7: (self.game.equals_command, 2),
+            8: (self.game.get_bundle_command, 1),
+            9: (self.game.range_command, 2),
         }
 
         # C type
         self.__command_nodes = {
             0: (self.game.foreach_command, 1),
             1: (self.game.give_cards_command, 2),
+            2: (self.game.split_stack_between_players, 1),
+            3: (self.game.move, 3),
+            4: (self.game.practice_war, 1),
+        }
+
+        # D type
+        self.__special_nodes = {
+            0: (self.game.finish_turn, 0),
+            1: (self.game.branch, 1)
+        }
+
+        # N type
+        self.__numbers = {
+            0: ((lambda: {0: [0]}), 0),
+            1: ((lambda: {0: [1]}), 0),
+            2: ((lambda: {0: [2]}), 0),
+            3: ((lambda: {0: [3]}), 0),
+            4: ((lambda: {0: [4]}), 0),
+            5: ((lambda: {0: [5]}), 0),
+            6: ((lambda: {0: [6]}), 0),
+            7: ((lambda: {0: [7]}), 0),
+            8: ((lambda: {0: [8]}), 0),
+            9: ((lambda: {0: [9]}), 0),
+            10: ((lambda: {0: [10]}), 0),
         }
 
         self.__find_dict = {
             'A': self.__info_nodes,
             'B': self.__sub_command_nodes,
-            'C': self.__command_nodes
+            'C': self.__command_nodes,
+            'D': self.__special_nodes,
+            'N': self.__numbers
         }
 
         # endregion
@@ -99,7 +137,8 @@ class Node:
         self.__static = None
         self.__type = None
         self.__type_index = None
-        self.__repeatable = False
+        self.__repeatable = None
+        self.__repeating = False
 
     @property
     def id(self) -> int:
@@ -117,13 +156,22 @@ class Node:
                                      not self.__inputs or
                                      all(any(input_node[0].static for input_node in input_slot) for input_slot in
                                          self.__inputs)
-                             ) and self.__type != "C"
+                             ) and self.__type != "C" and self.__type != "D"
                              )
         return self.__static
 
     @property
     def repeatable(self):
+        if self.__repeatable is not None:
+            return self.__repeatable
+        self.__repeatable = bool(self.__repeatable or \
+                                 any(any(input_node[0].repeatable for input_node in input_slot) for input_slot in
+                                     self.__inputs))
         return self.__repeatable
+
+    @property
+    def repeating(self):
+        return self.__repeating
 
     @property
     def type(self):
@@ -144,13 +192,16 @@ class Node:
             # Reads data from string with some string manipulation
             func_code, inputs, outputs, triggers = data[1:-1].split('*')  # Removing brackets [] and splitting
             self.__type = func_code[0]  # Setting the type (FE: 'A' or 'C')
-            if self.__type == 'A': self.__game.starter_nodes.append(self)
+            if self.__type == 'A' or self.__type == 'N': self.__game.starter_nodes.append(self)
             self.__type_index = int(func_code[1:4])
             # Get function from string code (FE: A000)
             if self.__type != 'E':
                 self.__func = self.__game.func_dict[self.__type][self.__type_index]
-            else: self.__func = (lambda: None, 0)
-            if func_code[0:4] == "C000": self.__repeatable = True
+            else:
+                self.__func = (lambda: None, 0)
+            if func_code[0:4] == "C000":
+                self.__repeatable = True
+                self.__repeating = True
             if inputs:  # Parse inputs -> List[List[(node_ID, node_output_slot_index)]]
                 self.__inputs = list(map(
                     lambda input_slot: list(map(
@@ -202,7 +253,8 @@ class Node:
         return True
 
     def has_value(self, node_sender, output_index):
-        if output_index >= len(self.__outputs) or not (res := self.__outputs[output_index].get(node_sender, False)):
+        if output_index >= len(self.__outputs) or not \
+                (res := self.__outputs[output_index].get(node_sender, None)):
             return False
         return res
 
@@ -211,7 +263,7 @@ class Node:
             return False
         if len(res) > 0:
             return res[0] \
-                if self.static and not node_sender.repeatable else \
+                if self.static and not node_sender.repeating else \
                 self.__outputs[output_index][node_sender].pop(0)
         return False
 
@@ -225,13 +277,19 @@ class Node:
         return ret
 
     def __call__(self, *args, **kwargs):
-        print(self.__type, self.__func)
+        print(self.__type, self.__type_index, self.id)
         if not all(
                 any(
                     input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot
                 ) for input_slot in self.__inputs
         ):
+            if self.__type == "C": all(
+                all(
+                    print(input_node[0].has_value(self, int(input_node[1]))) for input_node in input_slot
+                ) for input_slot in self.__inputs
+        )
             return
+
         if results := self.func[0](*self.__get_values()):
             if type(results) is not tuple: results = results, []
             if len(results) == 2 and type(results[0]) is dict:
@@ -247,7 +305,7 @@ class Node:
                         if type(res) is int and res < len(self.__triggers):
                             for trigger in self.__triggers[res]:
                                 trigger()
-        if len(self.__triggers) > 0:
+        if len(self.__triggers) == 1:
             for trigger in self.__triggers[0]:
                 trigger()
         if self.__type:
@@ -255,7 +313,14 @@ class Node:
                 for output in output_slot.keys():
                     if output.static:
                         output()
-        if not self.static: self()  # Check again if it can activate
+        if not self.static and self.repeatable and self.type != 'D':
+            print('CALLED SELF')
+            self()
+
+    def clear(self):
+        for i in range(len(self.__outputs)):
+            for output in self.__outputs[i].keys():
+                self.__outputs[i][output] = []
 
     def __str__(self):
         return f"\rNode ({self.__id}):\n\r\t{self.func=}\n\r\tinput={self.__inputs[0][0][0].id if self.__inputs else ''}" \

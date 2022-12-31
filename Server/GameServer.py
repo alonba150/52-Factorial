@@ -55,6 +55,9 @@ class GameServer(Server):
         
         """
 
+        self.game = Game()
+        self.game.send_update = lambda b: self.broadcast(b.encode())
+
         # Configuring Events
 
         # self.connect_client_event += lambda client: if self.game: self.game.connect(client)
