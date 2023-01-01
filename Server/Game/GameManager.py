@@ -8,7 +8,7 @@ from Utils.Event import Event
 
 class Game:
 
-    def __init__(self, code: str, code_turn: str, players=[0, 1, 2, 3], player_count=4):
+    def __init__(self, code: str, code_turn: str, players=[], player_count=4):
         self.players: List[socket] = players
         self.player_count: int = player_count
         self.can_start: bool = False
@@ -20,21 +20,18 @@ class Game:
         #                Bundle([Card(3, 4), Card(0, 7), Card(2, 5), Card(3, 3)]),
         #                Bundle([])]
 
-        self.bundles = [Bundle(cards=[]) for _ in range(len(self.players) * 3)]
+        self.bundles = [Bundle(cards=[]) for _ in range(player_count * 3)]
 
         self.send_update = Event()
 
-        self.__analyzer = CodeAnalyzer(self)
-        self.start, self.do_turn, self.end = self.__analyzer.analyze_code(code)
-        print(self.__analyzer.nodes['6'].repeatable)
-        _, self.do_turn, _ = CodeAnalyzer(self).analyze_code(code_turn)
-        self.start()
+        self.codes = code, code_turn
 
-        self.player_turn = players[0]
-        self.index_turn = 0
+        self.player_turn = None
+        self.player_turn_index = None
         self.current_player = None
+        self.current_player_index = None
         self.current_selected_cards = None
-        self.display()
+        # self.display()
 
     def connect(self, sock: socket):
         if sock in self.players:
@@ -42,7 +39,16 @@ class Game:
         if len(self.players) >= self.player_count:
             return False
         self.players.append(sock)
-        self.can_start = True
+        if len(self.players) == self.player_count:
+            self.can_start = True
+            self.player_turn = self.players[0]
+            self.player_turn_index = 0
+            self.__analyzer = CodeAnalyzer(self)
+            self.__analyzer1 = CodeAnalyzer(self)
+            self.start, self.do_turn, self.end = self.__analyzer.analyze_code(self.codes[0])
+            # print(self.__analyzer.nodes['6'].repeatable)
+            _, self.do_turn, _ = self.__analyzer1.analyze_code(self.codes[1])
+            self.start()
         return True
 
     def disconnect(self, sock: socket):
@@ -64,17 +70,18 @@ class Game:
 
     def get_active_player(self):
         print("A2")
-        return {0: [self.players.index(self.current_player)]}
+        return {0: [self.current_player_index]}
 
     def get_player_turn(self):
         print("A3")
-        return {0: [self.player_turn]}
+        return {0: [self.player_turn_index]}
 
     # endregion
 
     # region B Commands
     def get_bundle_by_player_command(self, player):
         print("B4")
+        print(player, self.players)
         return {0: [self.bundles[self.players.index(player)]]}
 
     @staticmethod
@@ -156,9 +163,9 @@ class Game:
     # region D Commands
 
     def finish_turn(self):
-        self.index_turn = (self.index_turn + 1) % self.player_count
-        self.player_turn = self.players[self.index_turn]
-        self.send_update()
+        self.player_turn_index = (self.player_turn_index + 1) % self.player_count
+        self.player_turn = self.players[self.player_turn_index]
+        self.send_update(self.bundles.__str__())
         print('\n\nTURN OVER\n\n')
 
     def branch(self, bool):
@@ -169,7 +176,9 @@ class Game:
     # endregion
 
     def activate(self, player, selected_cards=[]):
+        if not self.can_start: return
         self.current_player = player
+        self.current_player_index = self.players.index(self.current_player)
         self.current_selected_cards = selected_cards
         self.do_turn()
 
@@ -213,13 +222,13 @@ if __name__ == '__main__':
              "19: [N004**{(10)}*]///"
              "20: [N003**{(12)}*]///"
              "129: [A000***]"
-             )
-    g.activate(0, [])
-    print(g.player_turn,g.current_player,'\n\n')
-    g.activate(1, [])
-    print(g.player_turn, g.current_player, '\n\n')
-    g.activate(2, [])
-    print(g.player_turn, g.current_player, '\n\n')
-    g.activate(3, [])
-    print(g.player_turn, g.current_player, '\n\n')
-    g.display()
+             , players=[0, 1, 2, 3])
+    while True:
+        for i in range(52):
+            input()
+            g.activate(i % 4, [])
+            print(g.player_turn, g.current_player, '\n\n')
+            g.display()
+        for i in range(8, 12):
+            for _ in range(len(g.bundles[i].cards)):
+                g.bundles[i].move(g.bundles[i - 8], 0)

@@ -73,7 +73,7 @@ class Server:
 
     def __init__(self, encrypted: bool = True, port_server_addr: tuple = None,
                  input_handler=None, name: str = None, default_password: int = 4444,
-                 ip: str = gethostbyname_ex(gethostname())[-1][-1], port: int = 54321):
+                 ip: str = gethostbyname_ex(gethostname())[-1][-1], port: int = 54321, display_errors=False):
 
         # Save start time
         start_time = datetime.datetime.now()
@@ -86,6 +86,7 @@ class Server:
         self.name = name
         self.encrypted = encrypted
         self.port_server_addr = port_server_addr
+        self.display_errors = display_errors
         self.__server_message_history = ""
 
         self.__is_active = True
@@ -104,6 +105,7 @@ class Server:
         self._client_info = {}
         self.__commands = []
 
+        self.__input_handle = None
         if input_handler is not None:
             self.__input_handle = input_handler
 
@@ -129,12 +131,12 @@ class Server:
 
     def __main(self):
         # Alert server starting process
-        self.__server_msg(f"Starting Up Server on {self.addr}")
+        self._server_msg(f"Starting Up Server on {self.addr}")
 
         try:
             self.__server.bind(self.addr)
         except (ConnectionError, ssl.SSLError, OSError):
-            self.__server_msg("Server Start-Up failed - Server is already running")
+            self._server_msg("Server Start-Up failed - Server is already running")
             quit()
         self.__server.listen(5)
 
@@ -160,7 +162,7 @@ class Server:
                     except OSError:
                         self.shut_down('Client Accept Error')
                         break  # Pycharm is yelling at me if I don't do this help me
-                    self.__server_msg(f"Started connection with {new_client_addr}")
+                    self._server_msg(f"Started connection with {new_client_addr}")
                     new_client.setblocking(False)
                     self.__sockets.append(new_client)
                     self._client_info[new_client] = {}
@@ -181,17 +183,17 @@ class Server:
                             self.terminate_client(read_client, reason='Client has closed the connection')
 
                         elif data == "ERROR:BadLength":
-                            self.__server_msg("An error has occurred regarding the socket_message_helper.")
+                            self._server_msg("An error has occurred regarding the socket_message_helper.")
                             self.terminate_client(read_client,
                                                   reason="an error has occurred regarding the socket_message_helper")
 
                         # Unknown error
                         elif data.startswith("ERROR"):
                             print(data)
-                            self.__server_msg("An unknown error has occurred.")
+                            self._server_msg("An unknown error has occurred.")
                             self.terminate_client(read_client, reason="an unknown error has occurred")
                     else:
-                        self.__input_handler(read_client, data)
+                        if self.__input_handle: self.__input_handler(read_client, data)
 
             # Handle outputs
             for write_client in write:
@@ -200,7 +202,7 @@ class Server:
 
             for exception_client in exception:
                 self.terminate_client(exception_client, reason="an unknown error has occurred")
-                self.__server_msg('Client left due to exception')
+                self._server_msg('Client left due to exception')
 
     def __time_msg(self, msg):
         """
@@ -214,13 +216,13 @@ class Server:
         self.__server_message_history += time_msg + '\n'
 
     # Decorative lambdas for messages
-    def __client_msg(self, msg, addr):
+    def _client_msg(self, msg, addr):
         self.__time_msg(f"[CLIENT {addr}] {msg}")
 
-    def __server_msg(self, msg):
+    def _server_msg(self, msg):
         self.__time_msg(f"[SERVER] {msg}")
 
-    def __broadcast_msg(self, msg, addr):
+    def _broadcast_msg(self, msg, addr):
         self.__time_msg(f"[BROADCAST] [CLIENT {addr}] {msg}")
 
     # region Commands
@@ -265,11 +267,17 @@ class Server:
             try:
                 command.execute_with_hierarchy(command=data, client=client, addr=addr)
             except Exception as e:
-                self.terminate_client(client, reason=e.__str__())
+                if not self.display_errors:
+                    self.terminate_client(client, reason=e.__str__())
+                else:
+                    raise
         try:
             self.__input_handle(client, addr, data)
         except Exception as e:
-            self.terminate_client(client, reason=e.__str__())
+            if not self.display_errors:
+                self.terminate_client(client, reason=e.__str__())
+            else:
+                raise
 
     def __connection(self, client, addr, data):
         pass
@@ -292,7 +300,7 @@ class Server:
 
         self.__sockets.clear()
 
-        self.__server_msg(f'Shutting Down Server{f" Because of a {reason}" if reason else ""}')
+        self._server_msg(f'Shutting Down Server{f" Because of a {reason}" if reason else ""}')
 
         with open(os.path.join("../Logs", f'{str(self.start_time).replace(" ", "-").replace(":", "-")}.txt'),
                   'w') as file:
@@ -313,7 +321,7 @@ class Server:
         self.terminate_client_event(client, shut_down, reason)
         addr = self._client_info[client]['addr']
         self._client_info.pop(client, None)
-        self.__server_msg(f"Closed connection with {addr}{f' because {reason}' if reason else ''}")
+        self._server_msg(f"Closed connection with {addr}{f' because {reason}' if reason else ''}")
         self.__sockets.remove(client)
         del self._client_messages[client]
         client.close()
@@ -335,11 +343,11 @@ class Server:
                 response = broadcast_socket.recv(1024).decode()
             except:
                 broadcast_socket.close()
-                self.__server_msg("Server Start-Up failed - Port Server Not Online")
+                self._server_msg("Server Start-Up failed - Port Server Not Online")
                 quit()
             broadcast_socket.close()
             if not response == 'ok' and self.name:
-                self.__server_msg("Server Start-Up failed - Port Server encountered an unknown problem")
+                self._server_msg("Server Start-Up failed - Port Server encountered an unknown problem")
                 quit()
 
     def delete_from_port_server(self):

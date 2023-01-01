@@ -30,6 +30,7 @@ class Bundle:
         return self
 
     def move(self, other, index=0):
+        if index >= len(self.cards): return
         return other.append(self.pop(index))
 
     @staticmethod

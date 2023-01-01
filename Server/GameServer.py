@@ -3,12 +3,14 @@ from Game.GameManager import *
 from Storage.database import *
 
 import threading
+from TestClient._TestClient import _TestClient
 
 
 class GameServer(Server):
 
     def __init__(self):
-        super().__init__(encrypted=False, input_handler=None, name='Game Server', port=55555)
+        super().__init__(encrypted=False, input_handler=self.__input_handle, name='Game Server', port=55555,
+                         display_errors=True)
 
         # Setting up variables
 
@@ -21,6 +23,7 @@ class GameServer(Server):
         # Adding all commands
 
         self.add_command(ServerCommand('connect', self.connect_to_game))
+        self.add_command(ServerCommand('play', self.play_game))
 
         """
         ping_command = ServerCommand('ping', self.ping)
@@ -55,14 +58,40 @@ class GameServer(Server):
         
         """
 
-        self.game = Game()
+        self.game = Game(
+            "0: [A000**{(1/2)}*]///1: [C000*{(0.0)}*{(5)}*{(5)}]///2: [B005*{(0.0)}*{(4)}*]///3: [A000**{(4)}*]///"
+            "4: [B003*{(3.0)//(2.0)}*{(6)}*]///5: [B004*{(1.0)}*{(6)}*{(6)}]///6: [C001*{(5.0)//(4.0)}**]///"
+            "7: [E000***{(1)}]",
+            "0: [E001***{(1)}]///"
+            "1: [D001*{(5.0)}**{(2)//(129)}]///"
+            "2: [C003*{(7.0)//(9.0)//(15.0)}**{(11)}]///"
+            "3: [A002**{(5)}*]///"
+            "4: [A003**{(5)}*]///"
+            "5: [B007*{(3.0)//(4.0)}*{(1)}*]///"
+            "6: [A003**{(7/8)}*]///"
+            "7: [B008*{(6.0)}*{(2)}*]///"
+            "8: [B000*{(6.0)//(17.0)}*{(9)}*]///"
+            "9: [B008*{(8.0)}*{(2)}*]///"
+            "10: [B009*{(18.0)//(19.0)}*{(14)}*]///"
+            "11: [D001*{(12.0)}**{(14)//(16)}]///"
+            "12: [B007*{(13.0)//(20.0)}*{(11)}*]///"
+            "13: [A003**{(12)}*]///"
+            "14: [C004*{(10.0)}**{(16)}]///"
+            "15: [N000**{(2)}*]///"
+            "16: [D000***]///"
+            "17: [N004**{(8)}*]///"
+            "18: [N000**{(10)}*]///"
+            "19: [N004**{(10)}*]///"
+            "20: [N003**{(12)}*]///"
+            "129: [A000***]"
+        )
         self.game.send_update = lambda b: self.broadcast(b.encode())
 
         # Configuring Events
 
         # self.connect_client_event += lambda client: if self.game: self.game.connect(client)
-        self.terminate_client_event += lambda client, *args, **kwargs: self.disconnect_from_game(b"", client)
-        self.terminate_client_event += lambda client, *args, **kwargs: self.log_out(b"", client, kicked=True)
+        # self.terminate_client_event += lambda client, *args, **kwargs: self.disconnect_from_game(b"", client)
+        # self.terminate_client_event += lambda client, *args, **kwargs: self.log_out(b"", client, kicked=True)
 
         # Starting self
 
@@ -90,7 +119,10 @@ class GameServer(Server):
 
     def get_input(self):
         while 1:
-            self.broadcast(input(" -> ").encode())
+            self.broadcast(input("").encode())
+
+    def __input_handle(self, client, addr, data):
+        self._client_msg(data, addr)
 
     @issue_handle()
     def log_in(self, arg: bytes, client, *args, **kwargs):
@@ -117,15 +149,17 @@ class GameServer(Server):
         self._client_messages[client].append(str(user_id).encode())
         return True
 
-    @issue_handle()
-    def connect_to_game(self, arg: bytes, client, *args, **kwargs):
-        if self.game: self.game.connect(client)
-        if self.game.can_start: self.game.start()
+    def connect_to_game(self, arg: bytes, client, addr, *args, **kwargs):
+        if self.game: self.game.connect(addr)
         return True
 
-    @issue_handle()
-    def disconnect_from_game(self, arg: bytes, client, *args, **kwargs):
-        if self.game: self.game.disconnect(client)
+    def disconnect_from_game(self, arg: bytes, client, addr, *args, **kwargs):
+        if self.game: self.game.disconnect(addr)
+        return True
+
+    def play_game(self, arg: bytes, client, addr, *args, **kwargs):
+        self.game.activate(addr, [])
+        self.game.display()
         return True
 
     @issue_handle(fail_message="Bad Arguments")
@@ -133,9 +167,17 @@ class GameServer(Server):
         if user_id := self.__client_users.get(client, None):
             game_id = GameDB.create(user_id=user_id, code=arg)
             self._client_messages[client].append(str(game_id).encode())
-        else: self._client_messages[client].append("Not Logged In".encode())
+        else:
+            self._client_messages[client].append("Not Logged In".encode())
         return True
+
+
+def do_client():
+    _TestClient()
 
 
 if __name__ == '__main__':
     GameServer()
+    # for i in range(4):
+    #     t = threading.Thread(target=do_client)
+    #     t.start()
