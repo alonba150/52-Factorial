@@ -8,4 +8,4 @@ class Card:
         self.value: int = value
 
     def __repr__(self):
-        return f"({self.type}, {self.value})"
+        return f"({self.type} - {self.value})"

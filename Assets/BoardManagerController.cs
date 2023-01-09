@@ -39,6 +39,8 @@ public class BoardManagerController : MonoBehaviour
     public bool two_to_one;
     public bool add_to_all;
     public bool remove_from_all;
+    public bool connect;
+    public bool play;
 
     private Socket server;
 
@@ -52,8 +54,8 @@ public class BoardManagerController : MonoBehaviour
         //
         // Read Starter File
         //
-        string[] lines = File.ReadAllLines("C:\\Users\\u101040.DESHALIT\\Desktop\\Haproyekt shel ran\\52-Factorial\\Cards.txt");
-        string[] hands = lines[0].Split(',');
+        //string[] lines = File.ReadAllLines("C:\\Users\\u101040.DESHALIT\\Desktop\\Haproyekt shel ran\\52-Factorial\\Cards.txt");
+        //string[] hands = lines[0].Split(',');
         Hand[] _hands = new Hand[] { hand1, hand2, hand3, hand4 };
         bundles.Add(hand1);
         bundles.Add(hand2);
@@ -87,7 +89,7 @@ public class BoardManagerController : MonoBehaviour
         // Start Connection with server
         //
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-        IPAddress ipAddress = host.AddressList[4];
+        IPAddress ipAddress = host.AddressList[3];
         foreach (IPAddress ip in host.AddressList)
         {
             Debug.Log(ip);
@@ -115,26 +117,21 @@ public class BoardManagerController : MonoBehaviour
         //
         // Server Connection
         //
-        try
+
+        if (server != null && server.IsBound && server.Available > 0)
         {
-            if (server.IsBound && server.Available > 0)
+            string data = null;
+            byte[] bytes = null;
+            bytes = new byte[Math.Min(server.Available, 1024)];
+            int bytesRec = server.Receive(bytes);
+            data += Encoding.ASCII.GetString(bytes, 0, bytesRec);
+            if (data.IndexOf("<EOF>") > -1)
             {
-                string data = null;
-                byte[] bytes = null;
-                bytes = new byte[Math.Min(server.Available, 1024)];
-                int bytesRec = server.Receive(bytes);
-                data += Encoding.ASCII.GetString(bytes, 0, bytesRec);
-                if (data.IndexOf("<EOF>") > -1)
-                {
-                    server.Disconnect(true);
-                }
-                HandleData(data.Substring(8));
+                server.Disconnect(true);
             }
+            HandleData1(data.Substring(8));
         }
-        catch (Exception e)
-        {
-            Debug.Log(e.ToString());
-        }
+   
         //
         // Tests
         //
@@ -163,6 +160,22 @@ public class BoardManagerController : MonoBehaviour
             hand3.Remove(hand3.Get(hand3.Count-1));
             hand4.Remove(hand4.Get(hand4.Count-1));
             remove_from_all = false;
+        }
+        if (connect)
+        {
+            if (server != null)
+            {
+                server.Send(Encoding.ASCII.GetBytes("00000007connect"));
+            }
+            connect = false;
+        }
+        if (play)
+        {
+            if (server != null)
+            {
+                server.Send(Encoding.ASCII.GetBytes("00000004play"));
+            }
+            play = false;
         }
     }
 
@@ -221,5 +234,46 @@ public class BoardManagerController : MonoBehaviour
                 Debug.Log("Unknown Command: " + data);
                 break;
         }
+    }
+
+    private void HandleData1(string data)
+    {
+        print(data);
+        foreach (Bundle b in bundles)
+        {
+            Destroy(b.gameObject);
+        }
+        bundles.Clear();
+        data = data.Substring(1, data.Length - 2);
+        string[] spl = data.Split("Bundle ");
+        foreach (string _bundle in spl)
+        {
+            if (_bundle == "") continue;
+            print(_bundle);
+            string b = _bundle.Substring(0, _bundle.Length - 1);
+            b = b.Split(": ")[1];
+            b = b.Substring(1, b.Length - 2);
+            string[] temp = b.Split(" + ");
+            string[] cards = temp[0].Substring(1, temp[0].Length - 2).Split(", ");
+            string[] position = temp[1].Substring(1, temp[1].Length - 2).Split(", ");
+            Bundle n = Bundle.Create(Bundle.Formation.STACK, 0, 0, float.Parse(position[0]), float.Parse(position[1]));
+            foreach (string card in cards)
+            {
+                if (card == "" || card.Trim() == "") continue;
+                print(card);
+                string[] c = card.Substring(1, card.Length - 2).Split(" - ");
+                print(c[0] + " " + c[1]);
+                n.Add(Card.Create(int.Parse(c[1]), Card.suits[int.Parse(c[0])]));
+            }
+            n.ReverseCardOrder();
+            bundles.Add(n);
+        }
+        List<Bundle> templ = new List<Bundle>();
+        foreach (Bundle b in bundles)
+        {
+            templ.Add(b.Enable(Quaternion.identity));
+        }
+        bundles = templ;
+
     }
 }

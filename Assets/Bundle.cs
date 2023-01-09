@@ -33,6 +33,9 @@ public class Bundle : MonoBehaviour
     public float spaceX;
     public float spaceZ;
 
+    public float x;
+    public float z;
+
     private bool displayActive = false;
 
     #region Basic Functions
@@ -81,6 +84,11 @@ public class Bundle : MonoBehaviour
     {
         b.Add(cards[i]);
         this.Remove(i);
+    }
+
+    public void ReverseCardOrder()
+    {
+        this.cards.Reverse();
     }
     #endregion
 
@@ -134,6 +142,18 @@ public class Bundle : MonoBehaviour
     }
     #endregion
 
+    public static Bundle Create(Formation f, float spaceX, float spaceZ, float x, float z)
+    {
+        Bundle b = Instantiate(BoardManagerController.Instance.bundlePrefab).GetComponent<Bundle>();
+        Destroy(b.gameObject);
+        b.display = f;
+        b.spaceX = spaceX;
+        b.spaceZ = spaceZ;
+        b.x = x;
+        b.z = z;
+        return b;
+    }
+
     public static Bundle Create(Formation f, float spaceX, float spaceZ)
     {
         Bundle b = Instantiate(BoardManagerController.Instance.bundlePrefab).GetComponent<Bundle>();
@@ -141,12 +161,25 @@ public class Bundle : MonoBehaviour
         b.display = f;
         b.spaceX = spaceX;
         b.spaceZ = spaceZ;
+
         return b;
     }
 
     public Bundle Enable(float x, float z, Quaternion quat)
     {
-        Bundle b = Instantiate(this, new Vector3(x, 0.5f, z), quat);
+        this.x = x;
+        this.z = z;
+        Bundle b = Instantiate(this, new Vector3(this.x, 0.5f, this.z), quat);
+        b.name = "Bundle";
+        b.enabled = true;
+        b.gameObject.SetActive(true);
+        b.SetDisplay(true);
+        return b;
+    }
+
+    public Bundle Enable(Quaternion quat)
+    {
+        Bundle b = Instantiate(this, new Vector3(this.x, 0.5f, this.z), quat);
         b.name = "Bundle";
         b.enabled = true;
         b.gameObject.SetActive(true);

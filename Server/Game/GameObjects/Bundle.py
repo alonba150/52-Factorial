@@ -6,8 +6,9 @@ import random
 class Bundle:
     cards: List[Card] = []
 
-    def __init__(self, cards: List[Card] = []):
+    def __init__(self, cards: List[Card] = [], pos=(0.0, 0.0, 0.0)):
         self.cards = cards
+        self.position = pos
 
     def __getitem__(self, item) -> Card:
         return self.cards[item]
@@ -46,5 +47,5 @@ class Bundle:
         return self
 
     def __repr__(self):
-        return f"Bundle {len(self.cards)}: {self.cards}"
+        return f"Bundle {len(self.cards)}: [{self.cards} + {self.position}]"
 
