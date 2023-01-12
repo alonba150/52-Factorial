@@ -20,6 +20,9 @@ class CodeAnalyzer:
             print(node)
 
         events = [Event(), Event(), Event()]
+        for node in self.starter_nodes:
+            for event in events:
+                event += node
         for node in self.nodes.values():
             if node.type == "E":
                 events[node.type_index] += node
@@ -280,10 +283,10 @@ class Node:
         print(self.__type, self.__type_index, self.id)
         if not remap and self.type == "C":
             print('\nNOREMAP\n')
-        if self.static and self.type not in ["A", "B", "E"]:
+        if self.static and self.type not in ["A", "B", "E", "D"]:
             print('BLOCKED')
             return
-        if remap and not self.static:
+        if remap and not self.static and not self.repeatable:
             print('GOT IN')
             self.__static = True
             self.activate_base_input()
