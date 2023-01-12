@@ -20,8 +20,6 @@ class CodeAnalyzer:
             print(node)
 
         events = [Event(), Event(), Event()]
-        for node in self.starter_nodes:
-            for event in events: event += node
         for node in self.nodes.values():
             if node.type == "E":
                 events[node.type_index] += node
@@ -262,9 +260,11 @@ class Node:
         if output_index >= len(self.__outputs) or not (res := self.__outputs[output_index].get(node_sender, False)):
             return False
         if len(res) > 0:
-            return res[0] \
-                if self.static and not node_sender.repeating else \
-                self.__outputs[output_index][node_sender].pop(0)
+            if self.static and not node_sender.repeating:
+                return res[0]
+            else:
+                return self.__outputs[output_index][node_sender].pop(0)
+
         return False
 
     def __get_values(self):
@@ -276,8 +276,18 @@ class Node:
                     break
         return ret
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, remap=True, *args, **kwargs):
         print(self.__type, self.__type_index, self.id)
+        if not remap and self.type == "C":
+            print('\nNOREMAP\n')
+        if self.static and self.type not in ["A", "B", "E"]:
+            print('BLOCKED')
+            return
+        if remap and not self.static:
+            print('GOT IN')
+            self.__static = True
+            self.activate_base_input()
+            self.__static = False
         if not all(
                 any(
                     input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot
@@ -287,19 +297,26 @@ class Node:
                 all(
                     print(input_node[0].has_value(self, int(input_node[1]))) for input_node in input_slot
                 ) for input_slot in self.__inputs
-        )
+            )
             return
 
-        if results := self.func[0](*self.__get_values()):
+        args_for_func = self.__get_values()
+        if results := self.func[0](*args_for_func):
             if type(results) is not tuple: results = results, []
             if len(results) == 2 and type(results[0]) is dict:
                 for i in range(len(self.__outputs)):
                     if res := results[0].get(i, False):
                         for output in self.__outputs[i].keys():
-                            if type(res) is list:
-                                self.__outputs[i][output].extend(res)
+                            if self.static:
+                                if type(res) is list:
+                                    self.__outputs[i][output] = res
+                                else:
+                                    self.__outputs[i][output] = [res]
                             else:
-                                self.__outputs[i][output].append(res)
+                                if type(res) is list:
+                                    self.__outputs[i][output].extend(res)
+                                else:
+                                    self.__outputs[i][output].append(res)
                 if results[1] and type(results[1]) is tuple:
                     for res in results[1]:
                         if type(res) is int and res < len(self.__triggers):
@@ -315,7 +332,15 @@ class Node:
                         output()
         if not self.static and self.repeatable and self.type != 'D':
             print('CALLED SELF')
-            self()
+            self(remap=False)
+
+    def activate_base_input(self):
+        for input_slot in self.__inputs:
+            for input_node in input_slot:
+                if input_node[0].type == "A":
+                    input_node[0](remap=False)
+                elif input_node[0].static:
+                    input_node[0].activate_base_input()
 
     def clear(self):
         for i in range(len(self.__outputs)):
