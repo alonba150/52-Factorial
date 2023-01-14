@@ -20,14 +20,13 @@ class Game:
         #                Bundle([Card(3, 4), Card(0, 7), Card(2, 5), Card(3, 3)]),
         #                Bundle([])]
 
-        get_pos = lambda p, x, y: (4.0 * (2-p) * (p % 2) + x * abs((p % 2) - 1) * (1-p) + y * (p % 2) * (p-2)
-                                   , 4.0 * (p-1) * abs((p % 2) - 1) +
-                                   y * abs((p % 2) - 1) * (1-p) + x * (p % 2) * (p-2), 90*p)
+        get_pos = lambda p, x, y: (4.0 * (2 - p) * (p % 2) + x * abs((p % 2) - 1) * (1 - p) + y * (p % 2) * (p - 2)
+                                   , 4.0 * (p - 1) * abs((p % 2) - 1) +
+                                   y * abs((p % 2) - 1) * (1 - p) + x * (p % 2) * (p - 2), 90 * p)
 
         self.bundles = [Bundle(cards=[], pos=get_pos(i, 0, 0)) for i in range(player_count)] + \
                        [Bundle(cards=[], pos=get_pos(i, 0, 3.2)) for i in range(player_count)] + \
-                       [Bundle(cards=[], pos= get_pos(i, 0.4, 0)) for i in range(player_count)]
-
+                       [Bundle(cards=[], pos=get_pos(i, 0.4, 0)) for i in range(player_count)]
 
         self.send_update = Event()
 
