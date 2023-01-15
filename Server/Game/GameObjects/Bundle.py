@@ -1,3 +1,5 @@
+import math
+
 from Game.GameObjects.Card import *
 from typing import List
 import random
@@ -46,6 +48,10 @@ class Bundle:
         random.shuffle(self.cards)
         return self
 
-    def __repr__(self):
+    def __repr__(self, hidden=False, rotation=0.0):
+        rotation = self.position[2] + rotation
+        pos = self.position[0] * math.cos(rotation) - self.position[1] * math.sin(rotation), \
+            self.position[1] * math.sin(rotation) + self.position[0] * math.cos(rotation), \
+            rotation
         return f"Bundle {len(self.cards)}: [{self.cards} + {self.position}]"
 

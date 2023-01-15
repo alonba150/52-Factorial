@@ -89,7 +89,7 @@ public class BoardManagerController : MonoBehaviour
         // Start Connection with server
         //
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-        IPAddress ipAddress = host.AddressList[3];
+        IPAddress ipAddress = host.AddressList[4];
         foreach (IPAddress ip in host.AddressList)
         {
             Debug.Log(ip);
@@ -216,7 +216,7 @@ public class BoardManagerController : MonoBehaviour
                 int f = int.Parse(args[0]);
                 float bx = float.Parse(args[1]);
                 float bz = float.Parse(args[2]);
-                bundles.Add(Bundle.Create((Bundle.Formation)f, 0.5f, 0.3f).Enable(bx, bz, Quaternion.identity));
+                bundles.Add(Bundle.Create((Bundle.Formation)f, 0.5f, 0.3f).Enable(bx, bz, 0, Quaternion.identity));
                 break;
             case "RemoveBundle":
                 bundleId = int.Parse(args[0]);
@@ -250,20 +250,21 @@ public class BoardManagerController : MonoBehaviour
         {
             if (_bundle == "") continue;
             print(_bundle);
-            string b = _bundle.Substring(0, _bundle.Length - 1);
+            string b = _bundle.Substring(0, _bundle.Length - 2);
             b = b.Split(": ")[1];
             b = b.Substring(1, b.Length - 2);
             string[] temp = b.Split(" + ");
             string[] cards = temp[0].Substring(1, temp[0].Length - 2).Split(", ");
             string[] position = temp[1].Substring(1, temp[1].Length - 2).Split(", ");
-            Bundle n = Bundle.Create(Bundle.Formation.STACK, 0, 0, float.Parse(position[0]), float.Parse(position[1]));
+            print(temp[1]);
+            Bundle n = Bundle.Create(Bundle.Formation.STACK, 0, 0, float.Parse(position[0]), float.Parse(position[1]), float.Parse(position[2]));
             foreach (string card in cards)
             {
                 if (card == "" || card.Trim() == "") continue;
                 print(card);
                 string[] c = card.Substring(1, card.Length - 2).Split(" - ");
                 print(c[0] + " " + c[1]);
-                n.Add(Card.Create(int.Parse(c[1]), Card.suits[int.Parse(c[0])]));
+                n.Add(Card.Create(int.Parse(c[1]) + 1, Card.suits[int.Parse(c[0])]));
             }
             n.ReverseCardOrder();
             bundles.Add(n);

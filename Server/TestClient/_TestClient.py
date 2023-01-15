@@ -25,7 +25,9 @@ class _TestClient(Client):
         print(data)
 
     def user_input(self):
-        while True: self.send(input('').encode())
+        while True:
+            time.sleep(1.5)
+            self.send("play")
 
 
 if __name__ == '__main__':

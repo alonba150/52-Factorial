@@ -22,11 +22,11 @@ class Game:
 
         get_pos = lambda p, x, y: (4.0 * (2 - p) * (p % 2) + x * abs((p % 2) - 1) * (1 - p) + y * (p % 2) * (p - 2)
                                    , 4.0 * (p - 1) * abs((p % 2) - 1) +
-                                   y * abs((p % 2) - 1) * (1 - p) + x * (p % 2) * (p - 2), 90 * p)
+                                   y * abs((p % 2) - 1) * (1 - p) - x * (p % 2) * (p - 2), 90.0 * p)
 
         self.bundles = [Bundle(cards=[], pos=get_pos(i, 0, 0)) for i in range(player_count)] + \
                        [Bundle(cards=[], pos=get_pos(i, 0, 3.2)) for i in range(player_count)] + \
-                       [Bundle(cards=[], pos=get_pos(i, 0.4, 0)) for i in range(player_count)]
+                       [Bundle(cards=[], pos=get_pos(i, 0.9, 0)) for i in range(player_count)]
 
         self.send_update = Event()
 
@@ -62,6 +62,7 @@ class Game:
             return False
         self.players.remove(sock)
         self.can_start = False
+        # TODO SAVING
         return True
 
     # region A Commands
@@ -171,7 +172,8 @@ class Game:
     def finish_turn(self):
         self.player_turn_index = (self.player_turn_index + 1) % self.player_count
         self.player_turn = self.players[self.player_turn_index]
-        self.send_update(self.bundles.__str__())
+        self.send_update(["["+", ".join(b.__repr__(rotation=rot) for b in self.bundles)+"]"
+                          for rot in range(len(self.players))])
         print('\n\nTURN OVER\n\n')
 
     def branch(self, bool):

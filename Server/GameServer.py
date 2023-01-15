@@ -11,6 +11,7 @@ def get_game():
         game = file.read().replace('\n', '').split("____")
         return game
 
+
 class GameServer(Server):
 
     def __init__(self):
@@ -65,7 +66,7 @@ class GameServer(Server):
         game = get_game()
         print(game)
         self.game = Game(*game)
-        self.game.send_update = lambda b: self.broadcast(b.encode())
+        self.game.send_update = self.send_update
 
         # Configuring Events
 
@@ -76,6 +77,14 @@ class GameServer(Server):
         # Starting self
 
         self.start()
+
+    def send_update(self, bundles):
+        print("HERE0")
+        for client in self.clients:
+            print("HERE1")
+            if self._client_info[client]['addr'] in self.game.players:
+                print("HERE2")
+                self.send(client, bundles[self.game.players.index(self._client_info[client]['addr'])].encode())
 
     def issue_handle(fail_message=False):
         """
@@ -99,7 +108,11 @@ class GameServer(Server):
 
     def get_input(self):
         while 1:
-            self.broadcast(input("").encode())
+            try:
+                self.broadcast(input("").encode())
+            except (KeyboardInterrupt, UnicodeDecodeError):
+                self.shut_down("Because of a Manual Stop")
+                quit()
 
     def __input_handle(self, client, addr, data):
         self._client_msg(data, addr)
@@ -139,7 +152,6 @@ class GameServer(Server):
 
     def play_game(self, arg: bytes, client, addr, *args, **kwargs):
         self.game.activate(addr, [])
-        self.game.display()
         return True
 
     @issue_handle(fail_message="Bad Arguments")

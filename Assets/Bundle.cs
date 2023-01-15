@@ -36,6 +36,8 @@ public class Bundle : MonoBehaviour
     public float x;
     public float z;
 
+    public float rotation;
+
     private bool displayActive = false;
 
     #region Basic Functions
@@ -142,13 +144,14 @@ public class Bundle : MonoBehaviour
     }
     #endregion
 
-    public static Bundle Create(Formation f, float spaceX, float spaceZ, float x, float z)
+    public static Bundle Create(Formation f, float spaceX, float spaceZ, float x, float z, float rotation)
     {
         Bundle b = Instantiate(BoardManagerController.Instance.bundlePrefab).GetComponent<Bundle>();
         Destroy(b.gameObject);
         b.display = f;
         b.spaceX = spaceX;
         b.spaceZ = spaceZ;
+        b.rotation = rotation;
         b.x = x;
         b.z = z;
         return b;
@@ -165,11 +168,12 @@ public class Bundle : MonoBehaviour
         return b;
     }
 
-    public Bundle Enable(float x, float z, Quaternion quat)
+    public Bundle Enable(float x, float z, float rotation, Quaternion quat)
     {
         this.x = x;
         this.z = z;
         Bundle b = Instantiate(this, new Vector3(this.x, 0.5f, this.z), quat);
+        b.transform.Rotate(new Vector3(0, rotation, 0), Space.World);
         b.name = "Bundle";
         b.enabled = true;
         b.gameObject.SetActive(true);
@@ -180,6 +184,7 @@ public class Bundle : MonoBehaviour
     public Bundle Enable(Quaternion quat)
     {
         Bundle b = Instantiate(this, new Vector3(this.x, 0.5f, this.z), quat);
+        b.transform.Rotate(new Vector3(0, this.rotation, 0), Space.World);
         b.name = "Bundle";
         b.enabled = true;
         b.gameObject.SetActive(true);

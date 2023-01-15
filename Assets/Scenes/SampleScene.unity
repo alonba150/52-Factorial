@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657826, g: 0.49641263, b: 0.57481676, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -160,6 +160,7 @@ MonoBehaviour:
   spaceZ: 0.2
   x: 0
   z: 0
+  rotation: 0
 --- !u!4 &43659085
 Transform:
   m_ObjectHideFlags: 0
@@ -212,6 +213,7 @@ MonoBehaviour:
   spaceZ: 0.2
   x: 0
   z: 0
+  rotation: 0
 --- !u!4 &120375469
 Transform:
   m_ObjectHideFlags: 0
@@ -442,6 +444,7 @@ MonoBehaviour:
   spaceZ: 0.2
   x: 0
   z: 0
+  rotation: 0
 --- !u!4 &1068983989
 Transform:
   m_ObjectHideFlags: 0
@@ -550,7 +553,8 @@ MonoBehaviour:
   two_to_one: 0
   add_to_all: 0
   remove_from_all: 0
-  connect: 0
+  connect: 1
+  play: 0
 --- !u!4 &1152835662
 Transform:
   m_ObjectHideFlags: 0
@@ -700,6 +704,7 @@ MonoBehaviour:
   spaceZ: 0.2
   x: 0
   z: 0
+  rotation: 0
 --- !u!4 &1481774230
 Transform:
   m_ObjectHideFlags: 0

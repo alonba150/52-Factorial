@@ -113,6 +113,10 @@ class Server:
         self.terminate_client_event = Event()
         self.connect_client_event = Event()
 
+    @property
+    def clients(self):
+        return self.__sockets[1:]
+
     def start(self):
         """
         Starts the server
@@ -126,7 +130,12 @@ class Server:
         Broadcasts a message to the entire server
         :param data: message to broadcast
         """
-        for client in self.__sockets[1:]:
+        for client in self.clients:
+            self._client_messages[client].append(data)
+
+    def send(self, client, data):
+        if client in self.clients:
+            print('HERE3')
             self._client_messages[client].append(data)
 
     def __main(self):
@@ -146,7 +155,7 @@ class Server:
         while self.__sockets and self.__is_active:
 
             try:
-                read, write, exception = select.select(self.__sockets, self.__sockets[1:], self.__sockets)
+                read, write, exception = select.select(self.__sockets, self.clients, self.__sockets)
             except KeyboardInterrupt:
                 self.shut_down('Manual Stop')
                 break  # Unnecessary, only there so pycharm wouldn't yell at me
@@ -295,7 +304,7 @@ class Server:
 
         if self.port_server_addr: self.delete_from_port_server()
 
-        for client in self.__sockets[1:]:
+        for client in self.clients:
             self.terminate_client(client, shut_down=True, reason='the server is shutting down')
 
         self.__sockets.clear()
