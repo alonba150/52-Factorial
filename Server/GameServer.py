@@ -119,7 +119,9 @@ class GameServer(Server):
 
     def get_input(self):
         while 1:
-            self.broadcast(input("").encode())
+            try: self.broadcast(input("").encode())
+            except (UnicodeDecodeError, KeyboardInterrupt):
+                self.shut_down()
 
     def __input_handle(self, client, addr, data):
         self._client_msg(data, addr)

@@ -150,6 +150,9 @@ class Server:
             except KeyboardInterrupt:
                 self.shut_down('Manual Stop')
                 break  # Unnecessary, only there so pycharm wouldn't yell at me
+            except Exception:
+                self.shut_down("Unknown Error")
+                break
 
             # Handle inputs
             for read_client in read:

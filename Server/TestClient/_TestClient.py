@@ -2,7 +2,7 @@ import math
 import threading
 import time
 
-from TestClient.Core.Client import Client
+from TestClient.Core.Client import Client, TerminationState
 from socket import *
 
 
@@ -21,11 +21,18 @@ class _TestClient(Client):
 
         self.send(b'connect')
 
+        self.connection_interrupted_event = self.reconnect
+
+    def reconnect(self, event):
+        if event == TerminationState.SERVER_SHUTDOWN:
+            time.sleep(1)
+            _TestClient()
+
     def __listen_for_update(self, data: bytes):
         print(data)
 
     def user_input(self):
-        while True: self.send(input('').encode())
+        while self.is_connected: self.send(input('').encode())
 
 
 if __name__ == '__main__':

@@ -116,7 +116,6 @@ class Game:
 
     @staticmethod
     def equals_command(t1, t2):
-        print('EQUALS', t1, t2)
         return {0: [t1 == t2]}
 
     def get_bundle_command(self, index):
@@ -169,7 +168,7 @@ class Game:
         print('\n\nTURN OVER\n\n')
 
     def branch(self, bool):
-        print('BRANCH ' + ('true' if bool else 'false'))
+        # print('BRANCH ' + ('true' if bool else 'false'))
         if bool: return {}, (0,)
         return {}, (1,)
 
