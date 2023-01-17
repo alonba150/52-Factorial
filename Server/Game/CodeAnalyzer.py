@@ -80,6 +80,8 @@ class CodeAnalyzer:
             7: (self.game.equals_command, 2),
             8: (self.game.get_bundle_command, 1),
             9: (self.game.range_command, 2),
+            10: (self.game.get_card_command, 2),
+            11: (self.game.get_value_commande, 1),
         }
 
         # C type
@@ -141,6 +143,8 @@ class Node:
         self.__type_index = None
         self.__repeatable = None
         self.__repeating = False
+        self.__awaiting_values = {}
+        self.__func_triggers = None
 
     @property
     def id(self) -> int:
@@ -297,41 +301,58 @@ class Node:
             self.activate_base_input()
             self.__active = True
             print("GOT OUT")
-        if not all(
-                any(
-                    input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot
-                ) for input_slot in self.__inputs
-        ):
-            print("NO INPUTS: ")
-            if self.__type == "C": all(
-                all(
-                    print(input_node[0].has_value(self, int(input_node[1]))) for input_node in input_slot
-                ) for input_slot in self.__inputs
-            )
-            return
 
-        args_for_func = self.__get_values()
-        if results := self.func[0](*args_for_func):
-            if type(results) is not tuple: results = results, []
-            if len(results) == 2 and type(results[0]) is dict:
-                for i in range(len(self.__outputs)):
-                    if res := results[0].get(i, False):
-                        for output in self.__outputs[i].keys():
-                            if self.static:
-                                if type(res) is list:
-                                    self.__outputs[i][output] = res
-                                else:
+        if  any(self.__awaiting_values.get(key) for key in self.__awaiting_values.keys()):
+            print("SENDING ADDITIONAL INFO")
+            for i in range(len(self.__outputs)):
+                if res := self.__awaiting_values.get(i, False):
+                    if type(res) is list:
+                        lst = res
+                        res = lst.pop(0)
+                        self.__awaiting_values[i] = lst
+                    for output in self.__outputs[i].keys():
+                        if self.static:
+                            self.__outputs[i][output] = [res]
+                        else:
+                            self.__outputs[i][output].append(res)
+            if self.__func_triggers and type(self.__func_triggers) is tuple:
+                for res in self.__func_triggers:
+                    if type(res) is int and res < len(self.__triggers):
+                        for trigger_node in self.__triggers[res]:
+                            if trigger: trigger_node()
+        else:
+            if not all(
+                    any(
+                        input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot
+                    ) for input_slot in self.__inputs
+            ):
+                print("NO INPUTS: ")
+                if self.__type == "C":
+                    print([[input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot]
+                          for input_slot in self.__inputs])
+                print('NO INPUTS END')
+                return
+            args_for_func = self.__get_values()
+            if results := self.func[0](*args_for_func):
+                if type(results) is not tuple: results = results, []
+                if len(results) == 2 and type(results[0]) is dict:
+                    for i in range(len(self.__outputs)):
+                        if res := results[0].get(i, False):
+                            if type(res) is list:
+                                lst = res
+                                res = lst.pop(0)
+                                self.__awaiting_values[i] = lst
+                            for output in self.__outputs[i].keys():
+                                if self.static:
                                     self.__outputs[i][output] = [res]
-                            else:
-                                if type(res) is list:
-                                    self.__outputs[i][output].extend(res)
                                 else:
                                     self.__outputs[i][output].append(res)
-                if results[1] and type(results[1]) is tuple:
-                    for res in results[1]:
-                        if type(res) is int and res < len(self.__triggers):
-                            for trigger_node in self.__triggers[res]:
-                                if trigger: trigger_node()
+                    if results[1] and type(results[1]) is tuple:
+                        self.__func_triggers = results[1]
+                        for res in results[1]:
+                            if type(res) is int and res < len(self.__triggers):
+                                for trigger_node in self.__triggers[res]:
+                                    if trigger: trigger_node()
         if len(self.__triggers) == 1:
             for trigger_node in self.__triggers[0]:
                 if trigger: trigger_node()
@@ -340,7 +361,7 @@ class Node:
                 for output in output_slot.keys():
                     if output.static:
                         output(trigger=trigger)
-        if not self.static and self.repeatable and self.type != "D" and not self.repeating:
+        if any(self.__awaiting_values.get(key) for key in self.__awaiting_values.keys()):
             print('CALLED SELF')
             self(remap=False)
 

@@ -52,6 +52,7 @@ class Game:
         return True
 
     def disconnect(self, sock: socket):
+        print('\n DISCONNECT \n')
         if sock not in self.players:
             return False
         self.players.remove(sock)
@@ -62,11 +63,11 @@ class Game:
 
     def get_players_command(self):
         print("A0")
-        return {0: [self.players]}
+        return {0: [self.players.copy()]}
 
     def get_bundles_command(self):
         print("A1")
-        return {0: [self.bundles]}
+        return {0: [self.bundles.copy()]}
 
     def get_active_player(self):
         print("A2")
@@ -83,6 +84,12 @@ class Game:
         print("B4")
         print(player, self.players)
         return {0: [self.bundles[self.players.index(player)]]}
+
+    def get_card_command(self, bundle, index):
+        return {0: [bundle.cards[index]]}
+
+    def get_value_commande(self, card):
+        return card.value
 
     @staticmethod
     def count_command(lst: list):
