@@ -25,8 +25,7 @@ class _TestClient(Client):
 
     def reconnect(self, event):
         if event == TerminationState.SERVER_SHUTDOWN:
-            time.sleep(1)
-            _TestClient()
+            pass
 
     def __listen_for_update(self, data: bytes):
         print(data)
