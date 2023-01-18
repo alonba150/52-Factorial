@@ -17,7 +17,10 @@ class _TestClient(Client):
         self.connect()
 
         t = threading.Thread(target=self.user_input)
-        t.start()
+        try:
+            t.start()
+        except:
+            pass
 
         self.send(b'connect')
 
@@ -31,7 +34,11 @@ class _TestClient(Client):
         print(data)
 
     def user_input(self):
-        while self.is_connected: self.send(input('').encode())
+        try:
+            while self.is_connected:
+                self.send(input('').encode())
+        except (KeyboardInterrupt, UnicodeDecodeError):
+            pass
 
 
 if __name__ == '__main__':
