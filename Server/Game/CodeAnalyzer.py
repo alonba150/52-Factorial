@@ -20,7 +20,7 @@ class CodeAnalyzer:
             print(node)
 
         events = [Event(), Event(), Event()]
-        #for node in self.starter_nodes:
+        # for node in self.starter_nodes:
         #    for event in events:
         #        event += node
         for node in self.nodes.values():
@@ -82,6 +82,7 @@ class CodeAnalyzer:
             9: (self.game.range_command, 2),
             10: (self.game.get_card_command, 2),
             11: (self.game.get_value_commande, 1),
+            12: (self.game.bigger_command, 2),
         }
 
         # C type
@@ -99,6 +100,12 @@ class CodeAnalyzer:
             1: (self.game.branch, 1)
         }
 
+        # F type
+        self.__forward_nodes = lambda name: (lambda val: self.game.forward_command(name, val), 1)
+
+        # G type
+        self.__get_nodes = lambda name: (lambda: self.game.get_command(name), 0)
+
         # N type
         self.__numbers = {
             0: ((lambda: {0: [0]}), 0),
@@ -112,6 +119,8 @@ class CodeAnalyzer:
             8: ((lambda: {0: [8]}), 0),
             9: ((lambda: {0: [9]}), 0),
             10: ((lambda: {0: [10]}), 0),
+            11: ((lambda: {0: [11]}), 0),
+            12: ((lambda: {0: [12]}), 0),
         }
 
         self.__find_dict = {
@@ -119,7 +128,9 @@ class CodeAnalyzer:
             'B': self.__sub_command_nodes,
             'C': self.__command_nodes,
             'D': self.__special_nodes,
-            'N': self.__numbers
+            'N': self.__numbers,
+            'F': self.__forward_nodes,
+            'G': self.__get_nodes,
         }
 
         # endregion
@@ -162,7 +173,7 @@ class Node:
                                      not self.__inputs or
                                      all(any(input_node[0].static for input_node in input_slot) for input_slot in
                                          self.__inputs)
-                             ) and self.__type != "C" and self.__type != "D"
+                             ) and self.__type != "C" and self.__type != "D" and self.__type != "F"
                              )
         return self.__static
 
@@ -203,12 +214,16 @@ class Node:
             func_code, inputs, outputs, triggers = data[1:-1].split('*')  # Removing brackets [] and splitting
             self.__type = func_code[0]  # Setting the type (FE: 'A' or 'C')
             if self.__type == 'A' or self.__type == 'N': self.__game.starter_nodes.append(self)
-            self.__type_index = int(func_code[1:4])
-            # Get function from string code (FE: A000)
-            if self.__type != 'E':
-                self.__func = self.__game.func_dict[self.__type][self.__type_index]
+            if self.__type == 'G' or self.__type == 'F':
+                self.__type_index = func_code[1:4]
+                self.__func = self.__game.func_dict[self.__type](self.__type_index)
             else:
-                self.__func = (lambda: None, 0)
+                self.__type_index = int(func_code[1:4])
+                # Get function from string code (FE: A000)
+                if self.__type != 'E':
+                    self.__func = self.__game.func_dict[self.__type][self.__type_index]
+                else:
+                    self.__func = (lambda: None, 0)
             if func_code[0:4] == "C000":
                 self.__repeatable = True
                 self.__repeating = True
@@ -272,7 +287,7 @@ class Node:
         if output_index >= len(self.__outputs) or not (res := self.__outputs[output_index].get(node_sender, False)):
             return False
         if len(res) > 0:
-            if self.static and not node_sender.repeating: #TODO
+            if self.static and not node_sender.repeating:  # TODO
                 return res[0]
             else:
                 return self.__outputs[output_index][node_sender].pop(0)
@@ -290,8 +305,6 @@ class Node:
 
     def __call__(self, remap=True, trigger=True, *args, **kwargs):
         print(self.__type, self.__type_index, self.id)
-        if not remap and self.type == "C":
-            print('\nNO REMAP\n')
         if not self.active and self.type not in ["A", "B", "E", "D"]:
             print('BLOCKED')
             return
@@ -302,7 +315,7 @@ class Node:
             self.__active = True
             print("GOT OUT")
 
-        if  any(self.__awaiting_values.get(key) for key in self.__awaiting_values.keys()):
+        if any(self.__awaiting_values.get(key) for key in self.__awaiting_values.keys()):
             print("SENDING ADDITIONAL INFO")
             for i in range(len(self.__outputs)):
                 if res := self.__awaiting_values.get(i, False):
@@ -326,10 +339,9 @@ class Node:
                         input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot
                     ) for input_slot in self.__inputs
             ):
-                print("NO INPUTS: ")
-                if self.__type == "C":
-                    print([[input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot]
-                          for input_slot in self.__inputs])
+                print(f"NO INPUTS: (id:{self.id})")
+                print([[input_node[0].has_value(self, int(input_node[1])) for input_node in input_slot]
+                       for input_slot in self.__inputs])
                 print('NO INPUTS END')
                 return
             args_for_func = self.__get_values()
@@ -353,10 +365,10 @@ class Node:
                             if type(res) is int and res < len(self.__triggers):
                                 for trigger_node in self.__triggers[res]:
                                     if trigger: trigger_node()
-        if len(self.__triggers) == 1:
+        if self.repeating or len(self.__triggers) == 1:
             for trigger_node in self.__triggers[0]:
                 if trigger: trigger_node()
-        if self.__type:
+        if self.static:
             for output_slot in self.__outputs:
                 for output in output_slot.keys():
                     if output.static:
@@ -364,11 +376,15 @@ class Node:
         if any(self.__awaiting_values.get(key) for key in self.__awaiting_values.keys()):
             print('CALLED SELF')
             self(remap=False)
+        elif self.repeating:
+            for trigger_node in self.__triggers[1]:
+                if trigger: trigger_node()
 
     def activate_base_input(self):
         for input_slot in self.__inputs:
             for input_node in input_slot:
-                if input_node[0].type == "A" or input_node[0].type == "N":
+                if input_node[0].type == "A" or input_node[0].type == "N" or \
+                        input_node[0].type == "G":
                     input_node[0](remap=False, trigger=False)
                 elif input_node[0].static:
                     input_node[0].activate_base_input()

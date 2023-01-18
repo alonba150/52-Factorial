@@ -9,6 +9,8 @@ from Utils.Event import Event
 class Game:
 
     def __init__(self, code: str, code_turn: str, players=[], player_count=4):
+        self.__variables = {}
+
         self.players: List[socket] = players
         self.player_count: int = player_count
         self.can_start: bool = False
@@ -86,10 +88,12 @@ class Game:
         return {0: [self.bundles[self.players.index(player)]]}
 
     def get_card_command(self, bundle, index):
+        print(f"GET CARD {bundle.cards[index]}")
         return {0: [bundle.cards[index]]}
 
     def get_value_commande(self, card):
-        return card.value
+        print(f'GOT VALUE {card.value}')
+        return {0: [card.value]}
 
     @staticmethod
     def count_command(lst: list):
@@ -130,7 +134,12 @@ class Game:
 
     @staticmethod
     def range_command(start, end):
-        return {0: [[*range(start, end)]]}
+        return {0: [[*range(start, end)].copy()]}
+
+    @staticmethod
+    def bigger_command(ob1, ob2):
+        print(f"BIGGER? {ob1} <?> {ob2}")
+        return {0: [bool(ob1 > ob2)]}
 
     # endregion
 
@@ -150,7 +159,7 @@ class Game:
         for b in self.bundles[:self.player_count]:
             for _ in range(each_player_card_count): deck.move(b, 0)
 
-    def move(self, b, other, index: int):
+    def move(self, b, other, index = 0):
         b.move(other, index)
 
     def practice_war(self, r):
@@ -175,9 +184,22 @@ class Game:
         print('\n\nTURN OVER\n\n')
 
     def branch(self, bool):
-        # print('BRANCH ' + ('true' if bool else 'false'))
+        print('BRANCH ' + ('true' if bool else 'false'))
         if bool: return {}, (0,)
         return {}, (1,)
+
+    # endregion
+
+    # region F and G Commands
+
+    def forward_command(self, name, val):
+        print(f"FORWARD {name} --> {val}")
+        self.__variables[name] = val
+
+    def get_command(self, name):
+        print(f"GET {name} --> {self.__variables[name]}")
+        return {0: [self.__variables[name]]}
+        # return {0: [self.__variables.get(name, None)]}
 
     # endregion
 
