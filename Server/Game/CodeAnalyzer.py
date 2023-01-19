@@ -83,6 +83,7 @@ class CodeAnalyzer:
             10: (self.game.get_card_command, 2),
             11: (self.game.get_value_commande, 1),
             12: (self.game.bigger_command, 2),
+            13: (self.game.smaller_command, 2),
         }
 
         # C type
@@ -121,6 +122,8 @@ class CodeAnalyzer:
             10: ((lambda: {0: [10]}), 0),
             11: ((lambda: {0: [11]}), 0),
             12: ((lambda: {0: [12]}), 0),
+            13: ((lambda: {0: [12]}), 0),
+            14: ((lambda: {0: [12]}), 0),
         }
 
         self.__find_dict = {

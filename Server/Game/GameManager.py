@@ -141,6 +141,11 @@ class Game:
         print(f"BIGGER? {ob1} <?> {ob2}")
         return {0: [bool(ob1 > ob2)]}
 
+    @staticmethod
+    def smaller_command(ob1, ob2):
+        print(f"SMALLER? {ob1} <?> {ob2}")
+        return {0: [bool(ob1 < ob2)]}
+
     # endregion
 
     # region C Commands
