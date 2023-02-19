@@ -5,6 +5,7 @@ using UnityEngine;
 public class EditorCamera : MonoBehaviour
 {
 
+    public int rate;
     public int speed;
 
     // Start is called before the first frame update
@@ -16,7 +17,10 @@ public class EditorCamera : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float mouseScroll = Input.GetAxis("Mouse ScrollWheel") * Time.deltaTime;
-        this.transform.Translate(new Vector3(0, 0, mouseScroll * speed));
+        float mouseScroll = Input.GetAxis("Mouse ScrollWheel");
+        if (mouseScroll != 0)
+        {
+            this.transform.Translate(new Vector3(0, 0, mouseScroll * speed * Time.deltaTime * Mathf.Abs(this.transform.position.y) * Mathf.Pow(rate, mouseScroll)));
+        }
     }
 }
