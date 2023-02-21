@@ -20,7 +20,7 @@ public class EditorCamera : MonoBehaviour
         float mouseScroll = Input.GetAxis("Mouse ScrollWheel");
         if (mouseScroll != 0)
         {
-            this.transform.Translate(new Vector3(0, 0, mouseScroll * speed * Time.deltaTime * Mathf.Abs(this.transform.position.y) * Mathf.Pow(rate, mouseScroll)));
+            this.transform.Translate(new Vector3(0, 0, mouseScroll * speed * Time.deltaTime * Mathf.Abs(this.transform.position.y - 5) * Mathf.Pow(rate, mouseScroll)));
         }
     }
 }

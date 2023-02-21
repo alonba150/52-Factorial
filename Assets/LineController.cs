@@ -5,7 +5,7 @@ using UnityEngine;
 public class LineController : MonoBehaviour
 {
     private LineRenderer lr;
-    private RectTransform[] points;
+    private Transform[] points;
     public bool isLineCreated = false;
 
     private void Awake()
@@ -13,15 +13,16 @@ public class LineController : MonoBehaviour
         lr = GetComponent<LineRenderer>();
     }
 
-    public void StretchLine(RectTransform origin, Vector2 pointer)
+    public void StretchLine(Transform origin, Vector2 pointer)
     {
+        
         lr.positionCount = 2;
         lr.SetPosition(0, origin.position);
-        lr.SetPosition(1, new Vector3(pointer.x, pointer.y, origin.position.z));
+        lr.SetPosition(1, new Vector3(pointer.x, origin.position.y, pointer.y));
         isLineCreated = false;
     }
 
-    public void CreateLine(RectTransform[] points)
+    public void CreateLine(Transform[] points)
     {
         lr.positionCount = points.Length;
         this.points = points;
@@ -40,9 +41,10 @@ public class LineController : MonoBehaviour
 
     public void DeleteLine()
     {
-        lr.positionCount = 0;
-        this.points = null;
-        isLineCreated = false;
+        Destroy(this);
+        //lr.positionCount = 0;
+        //this.points = null;
+        //isLineCreated = false;
     }
 
 }
