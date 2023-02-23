@@ -1,19 +1,44 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class AdvancedConnector : MonoBehaviour
 {
     private AdvancedNode origin;
-    private Dictionary<AdvancedNode, LineController> targets;
+    private Dictionary<AdvancedConnector, LineController> targets = new Dictionary<AdvancedConnector, LineController>();
 
-    public Dictionary<AdvancedNode, LineController> Targets { get => targets; }
+    public Dictionary<AdvancedConnector, LineController> Targets { get => targets; }
 
     private LineController dynamicLine = null;
 
-    public void Connect(AdvancedNode other)
+    private Vector3 mousePos;
+    private Vector3 cameraPos;
+
+    public void SetOrigin(AdvancedNode origin)
     {
-        //targets.Add(other, EditorFactory.CreateLine())
+        this.origin = origin;
+    }
+
+    public void Connect(AdvancedConnector other)
+    {
+        if (origin == other.origin) return;
+        LineController lc;
+        if (targets.TryGetValue(other, out lc))
+        {
+            lc.DeleteLine();
+            origin.RemoveLine(lc);
+            other.origin.RemoveLine(lc);
+            targets.Remove(other);
+        }
+        else
+        {
+            lc = EditorFactory.CreateLine();
+            lc.CreateLine(new Transform[] { transform, other.transform });
+            origin.AddLine(lc);
+            other.origin.AddLine(lc);
+            targets.Add(other, lc);
+        }
     }
 
     private Vector3 GetMousePos()
@@ -23,36 +48,45 @@ public class AdvancedConnector : MonoBehaviour
 
     private void OnMouseDown()
     {
+        print("MOUSE DOWN");
         dynamicLine = EditorFactory.CreateLine();
-        dynamicLine.StretchLine(transform, Input.mousePosition);
+        if (Input.GetMouseButton(1))
+        {
+            foreach (AdvancedConnector ac in targets.Keys.ToArray())
+            {
+                Connect(ac);
+            }
+        }
     }
 
     private void OnMouseDrag()
     {
-        if (dynamicLine != null) dynamicLine.StretchLine(transform, Input.mousePosition);
+        if (dynamicLine != null) dynamicLine.StretchLine(transform, Camera.main.ScreenToWorldPoint(Input.mousePosition + new Vector3(0,0,GetMousePos().z)));
     }
 
     private void OnMouseUp()
     {
+        print("MOUSE UP");
         dynamicLine.DeleteLine();
-        Destroy(dynamicLine);
         dynamicLine = null;
-        //if (Input.mousePosition.TryGetComponent<Connector>(out Connector connector))
-        //{
-        //    if (!ct.Match(connector.ct)) { Debug.Log("FAILED TO CONNECT"); return; }
-        //    if (connector.next.Contains(this))
-        //    {
-        //        connector.next.Remove(this);
-        //        connector.DeleteLine();
-        //        Debug.Log("DELETED");
-        //    }
-        //    else
-        //    {
-        //        connector.next.Add(this);
-        //        connector.ConnectLine(new RectTransform[] { rectTransform, connector.rectTransform });
-        //        Debug.Log("ADDED");
-        //    }
-        //}
+        Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition + new Vector3(0, 0, GetMousePos().z));
+
+        Collider[] colliders;
+        AdvancedConnector other;
+        if ((colliders = Physics.OverlapSphere(pos, 1f /* Radius */)).Length > 1)
+        {
+            foreach (var collider in colliders)
+            {
+                var gObj = collider.gameObject; 
+                if (gObj == gameObject) continue; 
+                if (gObj.TryGetComponent<AdvancedConnector>(out other))
+                {
+                    Connect(other);
+                    break;
+                }
+
+            }
+        }
     }
 
     private void Awake()

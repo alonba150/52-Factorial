@@ -6,6 +6,8 @@ public class Draggable : MonoBehaviour
 {
     Vector3 mousePos;
 
+    public delegate void OnDrag();
+    public OnDrag onDrag;
 
     private Vector3 GetMousePos()
     {
@@ -22,10 +24,12 @@ public class Draggable : MonoBehaviour
     {
         Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition - mousePos);
         transform.position = new Vector3(pos.x, transform.position.y, pos.z);
+        onDrag();
     }
 
     private void OnMouseUp()
     {
         transform.position = new Vector3(transform.position.x, transform.position.y - 1, transform.position.z);
+        onDrag();
     }
 }
