@@ -5,24 +5,45 @@ using System.Linq;
 
 public class AdvancedConnector : MonoBehaviour
 {
+
     private AdvancedNode origin;
     private Dictionary<AdvancedConnector, LineController> targets = new Dictionary<AdvancedConnector, LineController>();
 
+    public IO type;
+
     public Dictionary<AdvancedConnector, LineController> Targets { get => targets; }
+
+    private MeshRenderer mr;
 
     private LineController dynamicLine = null;
 
     private Vector3 mousePos;
     private Vector3 cameraPos;
 
-    public void SetOrigin(AdvancedNode origin)
+    public static bool MatchIO(IO type, IO otherType)
+    {
+        switch (type)
+        {
+            case IO.Input: return otherType == IO.Output;
+            case IO.Output: return otherType == IO.Input;
+            case IO.TriggerIn: return otherType == IO.TriggerOut;
+            case IO.TriggerOut: return otherType == IO.TriggerIn;
+            default: return false;
+        }
+    }
+
+    public void SetAttributes(AdvancedNode origin, IO type)
     {
         this.origin = origin;
+        this.type = type;
+        SetColor();
     }
 
     public void Connect(AdvancedConnector other)
     {
         if (origin == other.origin) return;
+        if (!MatchIO(type, other.type)) return;
+        if (type == IO.Input || type == IO.TriggerIn) { other.Connect(this); return; }
         LineController lc;
         if (targets.TryGetValue(other, out lc))
         {
@@ -38,6 +59,25 @@ public class AdvancedConnector : MonoBehaviour
             origin.AddLine(lc);
             other.origin.AddLine(lc);
             targets.Add(other, lc);
+        }
+    }
+
+    private void SetColor()
+    {
+        switch (type)
+        {
+            case IO.Input:
+                mr.material.color = new Color(0, 255, 0);
+                break;
+            case IO.Output:
+                mr.material.color = new Color(255, 132, 0);
+                break;
+            case IO.TriggerIn:
+                mr.material.color = new Color(166, 0, 255);
+                break;
+            case IO.TriggerOut:
+                mr.material.color = new Color(255, 0, 0);
+                break;
         }
     }
 
@@ -91,7 +131,7 @@ public class AdvancedConnector : MonoBehaviour
 
     private void Awake()
     {
-        
+        mr = GetComponent<MeshRenderer>();
     }
 
     // Update is called once per frame

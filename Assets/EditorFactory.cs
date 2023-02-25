@@ -37,11 +37,11 @@ public class EditorFactory : MonoBehaviour
         return c;
     }
 
-    public static AdvancedConnector CreateConnector(Vector3 pos, AdvancedNode parent)
+    public static AdvancedConnector CreateConnector(Vector3 pos, AdvancedNode parent, IO type)
     {
         AdvancedConnector c = Instantiate(Instance.advancedConnectorPrefab, pos, parent.transform.rotation, parent.transform)
             .GetComponent<AdvancedConnector>();
-        c.SetOrigin(parent);
+        c.SetAttributes(parent, type);
         return c;
     }
 }

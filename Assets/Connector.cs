@@ -14,14 +14,14 @@ public class Connector : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, 
     private Vector2 canvasSize;
     private List<Connector> next = new List<Connector>();
 
-    public ConnectionType ct;
-    public ConnectionType.IO io;
-    public ConnectionType.Signal signal;
+    //public ConnectionType ct;
+    //public ConnectionType.IO io;
+    //public ConnectionType.Signal signal;
 
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
-        ct = new ConnectionType(io, signal, 0);
+        //ct = new ConnectionType(io, signal, 0);
         canvasSize = canvas.GetComponent<RectTransform>().sizeDelta;
     }
 
@@ -46,12 +46,12 @@ public class Connector : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, 
 
     public void OnDrop(PointerEventData eventData)
     {
-        Debug.Log($"Dropped {ct.io}");
+        //Debug.Log($"Dropped {ct.io}");
         if (eventData.pointerDrag == null) return;
-        if (ct.io == ConnectionType.IO.Output) return;
+        //if (ct.io == ConnectionType.IO.Output) return;
         if (eventData.pointerDrag.TryGetComponent<Connector>(out Connector connector))
         {
-            if (!ct.Match(connector.ct)) { Debug.Log("FAILED TO CONNECT"); return; }
+            //if (!ct.Match(connector.ct)) { Debug.Log("FAILED TO CONNECT"); return; }
             if (connector.next.Contains(this))
             {
                 connector.next.Remove(this);

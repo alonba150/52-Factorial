@@ -54,12 +54,12 @@ public class AdvancedNode : MonoBehaviour
         while (i < inputsL + 1 || i < triggersL + outputsL)
         {
             Vector3 currentPos = startingPos - (halfConnectorUp * 2 + distanceUp) * i;
-            if (i == 0) trigger = EditorFactory.CreateConnector(currentPos, this);
-            else if (i < inputsL + 1) inputs[i-1] = EditorFactory.CreateConnector(currentPos, this);
+            if (i == 0) trigger = EditorFactory.CreateConnector(currentPos, this, IO.TriggerIn);
+            else if (i < inputsL + 1) inputs[i-1] = EditorFactory.CreateConnector(currentPos, this, IO.Input);
             currentPos = Vector3.Scale(currentPos - transform.position, new Vector3(-1, 1, 1)) + transform.position;
             print(i + " " + triggers.Length);
-            if (i < triggersL) triggers[i] = EditorFactory.CreateConnector(currentPos, this);
-            else if (i < outputsL + triggersL) outputs[i-triggersL] = EditorFactory.CreateConnector(currentPos, this);
+            if (i < triggersL) triggers[i] = EditorFactory.CreateConnector(currentPos, this, IO.TriggerOut);
+            else if (i < outputsL + triggersL) outputs[i-triggersL] = EditorFactory.CreateConnector(currentPos, this, IO.Output);
             i++;
         }
     }
