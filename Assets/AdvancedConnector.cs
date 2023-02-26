@@ -6,12 +6,11 @@ using System.Linq;
 public class AdvancedConnector : MonoBehaviour
 {
 
-    private AdvancedNode origin;
-    private Dictionary<AdvancedConnector, LineController> targets = new Dictionary<AdvancedConnector, LineController>();
-
+    public AdvancedNode origin;
     public IO type;
+    public int index;
 
-    public Dictionary<AdvancedConnector, LineController> Targets { get => targets; }
+    public Dictionary<AdvancedConnector, LineController> Targets { get; } = new Dictionary<AdvancedConnector, LineController>();
 
     private MeshRenderer mr;
 
@@ -32,10 +31,11 @@ public class AdvancedConnector : MonoBehaviour
         }
     }
 
-    public void SetAttributes(AdvancedNode origin, IO type)
+    public void SetAttributes(AdvancedNode origin, IO type, int index)
     {
         this.origin = origin;
         this.type = type;
+        this.index = index;
         SetColor();
     }
 
@@ -45,12 +45,12 @@ public class AdvancedConnector : MonoBehaviour
         if (!MatchIO(type, other.type)) return;
         if (type == IO.Input || type == IO.TriggerIn) { other.Connect(this); return; }
         LineController lc;
-        if (targets.TryGetValue(other, out lc))
+        if (Targets.TryGetValue(other, out lc))
         {
             lc.DeleteLine();
             origin.RemoveLine(lc);
             other.origin.RemoveLine(lc);
-            targets.Remove(other);
+            Targets.Remove(other);
         }
         else
         {
@@ -58,7 +58,7 @@ public class AdvancedConnector : MonoBehaviour
             lc.CreateLine(new Transform[] { transform, other.transform });
             origin.AddLine(lc);
             other.origin.AddLine(lc);
-            targets.Add(other, lc);
+            Targets.Add(other, lc);
         }
     }
 
@@ -67,16 +67,16 @@ public class AdvancedConnector : MonoBehaviour
         switch (type)
         {
             case IO.Input:
-                mr.material.color = new Color(0, 255, 0);
+                mr.material.color = new Color(0, 1f, 0, 1f);
                 break;
             case IO.Output:
-                mr.material.color = new Color(255, 132, 0);
+                mr.material.color = new Color(1f, 69f/255f, 0, 1f);
                 break;
             case IO.TriggerIn:
-                mr.material.color = new Color(166, 0, 255);
+                mr.material.color = new Color(1f, 1f, 0, 1f);
                 break;
             case IO.TriggerOut:
-                mr.material.color = new Color(255, 0, 0);
+                mr.material.color = new Color(1f, 0, 0, 1f);
                 break;
         }
     }
@@ -92,7 +92,7 @@ public class AdvancedConnector : MonoBehaviour
         dynamicLine = EditorFactory.CreateLine();
         if (Input.GetMouseButton(1))
         {
-            foreach (AdvancedConnector ac in targets.Keys.ToArray())
+            foreach (AdvancedConnector ac in Targets.Keys.ToArray())
             {
                 Connect(ac);
             }

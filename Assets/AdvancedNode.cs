@@ -7,6 +7,8 @@ public class AdvancedNode : MonoBehaviour
 
     public static float planeScale = 10f;
 
+    public System.Guid guid;
+
     private int inputsL = 3;
     private int outputsL = 3;
     private int triggersL = 1;
@@ -19,6 +21,18 @@ public class AdvancedNode : MonoBehaviour
     public AdvancedConnector trigger;
 
     public List<LineController> updateables = new List<LineController>();
+
+    public void SetAttributes(int iL, int oL, int tL, string code)
+    {
+        inputsL = iL;
+        inputs = new AdvancedConnector[inputsL];
+        outputsL = oL;
+        outputs = new AdvancedConnector[outputsL];
+        triggersL = tL;
+        triggers = new AdvancedConnector[triggersL];
+        this.code = code;
+        guid = System.Guid.NewGuid();
+    }
 
     public void AddLine(LineController lc) { updateables.Add(lc); }
     public void RemoveLine(LineController lc) { updateables.Remove(lc); }
@@ -54,12 +68,13 @@ public class AdvancedNode : MonoBehaviour
         while (i < inputsL + 1 || i < triggersL + outputsL)
         {
             Vector3 currentPos = startingPos - (halfConnectorUp * 2 + distanceUp) * i;
-            if (i == 0) trigger = EditorFactory.CreateConnector(currentPos, this, IO.TriggerIn);
-            else if (i < inputsL + 1) inputs[i-1] = EditorFactory.CreateConnector(currentPos, this, IO.Input);
+            if (i == 0) trigger = EditorFactory.CreateConnector(currentPos, this, IO.TriggerIn, 0);
+            else if (i < inputsL + 1) inputs[i-1] = EditorFactory.CreateConnector(currentPos, this, IO.Input, i - 1);
             currentPos = Vector3.Scale(currentPos - transform.position, new Vector3(-1, 1, 1)) + transform.position;
             print(i + " " + triggers.Length);
-            if (i < triggersL) triggers[i] = EditorFactory.CreateConnector(currentPos, this, IO.TriggerOut);
-            else if (i < outputsL + triggersL) outputs[i-triggersL] = EditorFactory.CreateConnector(currentPos, this, IO.Output);
+            if (i < triggersL) triggers[i] = EditorFactory.CreateConnector(currentPos, this, IO.TriggerOut, i);
+            else if (i < outputsL + triggersL) outputs[i-triggersL] = EditorFactory.CreateConnector(currentPos, this, IO.Output,
+                i - triggersL);
             i++;
         }
     }
@@ -72,10 +87,10 @@ public class AdvancedNode : MonoBehaviour
 
         inputs = new AdvancedConnector[3];
         outputs = new AdvancedConnector[3];
-        triggers = new AdvancedConnector[7];
+        triggers = new AdvancedConnector[1];
 
-    //SetHeight();
-    PlaceConnectors();
+        //SetHeight();
+        PlaceConnectors();
     }
 
     // Update is called once per frame
